@@ -47,11 +47,12 @@ startMCCtlServer cfg = void . forkProcess $ do
       closeLock <- newEmptyMVar
       export client dbusObj [
           autoMethod dbusIface "shutdown" $ putMVar closeLock (),
-          autoMethod dbusIface "start"    $ start cfg insts,
+          autoMethod dbusIface "start"    $ start False cfg insts,
           autoMethod dbusIface "stop"     $ stop insts,
           autoMethod dbusIface "command"  $ command insts,
           autoMethod dbusIface "backlog"  $ backlog insts
         ]
+      void $ start True cfg insts ""
       takeMVar $ closeLock
       void $ stop insts ""
       void $ releaseName client dbusBus
@@ -59,11 +60,18 @@ startMCCtlServer cfg = void . forkProcess $ do
     _ -> do
       return ()
 
-start :: GlobalConfig -> MVar (M.Map String State) -> String -> IO String
-start cfg insts "" = do
+-- | Start a new instance, or all eligible instances if name is the empty
+--   string.
+start :: Bool                      -- ^ Only start autostart instances.
+      -> GlobalConfig              -- ^ Global config.
+      -> MVar (M.Map String State) -- ^ All currently running instances.
+      -> String                    -- ^ Name of instance to start.
+      -> IO String                 -- ^ Any output resulting from the attempted
+                                   --   start.
+start only_auto cfg insts "" = do
   is <- getAllInstances cfg
-  unlines <$> mapM (start cfg insts) is
-start cfg insts name = modifyMVar insts $ \m -> do
+  unlines <$> mapM (start only_auto cfg insts) is
+start only_auto cfg insts name = modifyMVar insts $ \m -> do
     case M.lookup name m of
       Just _ -> do
         return (m, "instance '" ++ name ++ "' is already running")
@@ -73,8 +81,12 @@ start cfg insts name = modifyMVar insts $ \m -> do
           Right i' -> do
             case parseInstance i' of
               Just inst -> do
-                st <- start' $ Config name cfg inst
-                return (M.insert name st m, "")
+                if (not only_auto || autostart inst)
+                  then do
+                    st <- start' $ Config name cfg inst
+                    return (M.insert name st m, "")
+                  else do
+                    return (m, "")
               _ -> do
                 return (m, "unable to parse instance file '" ++ instf ++ "'")
           _ -> do
@@ -82,6 +94,8 @@ start cfg insts name = modifyMVar insts $ \m -> do
   where
     instf = instanceFilePath cfg name
 
+-- | Stop a running instance, or all running instances if name is the empty
+--   string.
 stop :: MVar (M.Map String State) -> String -> IO String
 stop insts "" = modifyMVar insts $ \m -> do
   mapM_ (stop' . snd) $ M.toList m
@@ -94,6 +108,7 @@ stop insts name = modifyMVar insts $ \m -> do
     _ -> do
       return (m, "no such instance running")
 
+-- | Sent a command to a instance, or all if name is the empty string.
 command :: MVar (M.Map String State) -> String -> String -> IO [BS.ByteString]
 command insts "" cmd = withMVar insts $ \m -> do
   reps <- mapM (command' cmd . snd) $ M.toList m
@@ -103,6 +118,8 @@ command insts name cmd = withMVar insts $ \m -> do
     Just st -> command' cmd st
     _       -> return ["no such instance running"]
 
+-- | Get the last n lines from the log of the given instance, or all instances
+--   if name is the empty string.
 backlog :: MVar (M.Map String State) -> String -> Int32 -> IO String
 backlog insts "" n = withMVar insts $ \m -> do
   reps <- mapM (backlog' n . snd) $ M.toList m
