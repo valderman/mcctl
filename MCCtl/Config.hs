@@ -19,14 +19,17 @@ dbusBus = "cc.ekblad.mcctl"
 -- | Per instance settings.
 data Instance = Instance {
     -- | The working directory for this instance of the server.
-    serverDirectory :: !FilePath,
+    serverDirectory  :: !FilePath,
 
     -- | The path, absolute or relative to 'serverDirectory', of the JAR file
     --   for this server instance.
-    serverJAR       :: !FilePath,
+    serverJAR        :: !FilePath,
 
     -- | Start this instance automatically when mcctl starts?
-    autostart       :: !Bool
+    autostart        :: !Bool,
+
+    -- | Instance server.properties file.
+    serverProperties :: !(Maybe String)
   } deriving (Show, Read)
 
 -- | Command-line settable configuration.

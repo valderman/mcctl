@@ -9,12 +9,14 @@ import System.IO
 import System.Process
 import System.Posix.Process
 import System.FilePath
+import System.Directory
 import Control.Applicative
 import Control.Monad
 import Control.Concurrent
 import Control.Exception
 import DBus.Client
 import MCCtl.Config
+import MCCtl.Config.Parser
 import MCCtl.Paths
 
 -- | State for a single instance.
@@ -58,24 +60,27 @@ startMCCtlServer cfg = void . forkProcess $ do
       return ()
 
 start :: GlobalConfig -> MVar (M.Map String State) -> String -> IO String
+start cfg insts "" = do
+  is <- getAllInstances cfg
+  unlines <$> mapM (start cfg insts) is
 start cfg insts name = modifyMVar insts $ \m -> do
     case M.lookup name m of
       Just _ -> do
         return (m, "instance '" ++ name ++ "' is already running")
       _ -> do
-        i <- try (readFile instfile) :: IO (Either SomeException String)
+        i <- try (BS.readFile instf) :: IO (Either SomeException BS.ByteString)
         case i of
           Right i' -> do
-            case reads i' of
-              [(inst, _)] -> do
+            case parseInstance i' of
+              Just inst -> do
                 st <- start' $ Config name cfg inst
                 return (M.insert name st m, "")
               _ -> do
-                return (m, "unable to parse instance file '" ++ instfile ++ "'")
+                return (m, "unable to parse instance file '" ++ instf ++ "'")
           _ -> do
-            return (m, "file does not exist: '" ++ instfile ++ "'")
+            return (m, "file does not exist: '" ++ instf ++ "'")
   where
-    instfile = instanceFilePath cfg name
+    instf = instanceFilePath cfg name
 
 stop :: MVar (M.Map String State) -> String -> IO String
 stop insts "" = modifyMVar insts $ \m -> do
@@ -143,6 +148,10 @@ backlog' n st = do
 -- | Spawn a Minecraft server process.
 spawnServerProc :: Config -> IO State
 spawnServerProc cfg = do
+    createDirectoryIfMissing True dir
+    case serverProperties $ instanceConfig cfg of
+      Just props -> writeFile (dir </> "server.properties") props
+      _          -> return ()
     (Just i, Just o, Nothing, ph) <- createProcess cp
     State <$> pure ph
           <*> pure i
