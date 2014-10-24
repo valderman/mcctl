@@ -36,5 +36,7 @@ executable mcctl
     yaml >= 0.8,
     directory >= 1.2,
     containers >= 0.5
+  ghc-options:
+    -Wall -Werror -O2
   default-language:
     Haskell2010
