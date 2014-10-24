@@ -19,9 +19,9 @@ options = [
     Option "c" ["config-dir"]
                (ReqArg (\d c -> c {cfgInstanceDir = d}) "DIR")
                "Read instance configurations from DIR.",
-    Option "s" ["server"]
-               (ReqArg (\s c -> c {cfgTargetServer = s}) "SERVER")
-               ("Action affects the specified server. " ++
+    Option "i" ["instance"]
+               (ReqArg (\s c -> c {cfgTargetServer = s}) "INSTANCE")
+               ("Action affects the specified instance. " ++
                 "Affects all servers if unset.")
   ]
 
