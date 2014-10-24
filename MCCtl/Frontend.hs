@@ -6,22 +6,42 @@ import Control.Applicative
 import DBus
 import MCCtl.DBus
 
--- | Tell a server to shut down, then wait for it to actually do so.
-stopServer :: IO ()
-stopServer = dbusCall "stop" [] >> return ()
+-- | Perform a gracious shutdown of all instances, then kill the MCCtl server.
+shutdownServer :: IO ()
+shutdownServer = dbusCall "shutdown" [] >> return ()
 
--- | Execute a command on the server, then print the response.
-serverCommand :: String -> IO ()
-serverCommand cmd = do
-  ret <- dbusCall "command" [toVariant cmd]
+-- | Tell an instance to shut down, then wait for it to actually do so.
+stopServer :: String -> IO ()
+stopServer name = do
+  ret <- dbusCall "stop" [toVariant name]
+  case fromVariant <$> methodReturnBody ret of
+    [Just s] -> printMessage s
+    _        -> error "Impossibru!"
+
+-- | Start an instance unless it's already running.
+startServer :: String -> IO ()
+startServer name = do
+  ret <- dbusCall "start" [toVariant name]
+  case fromVariant <$> methodReturnBody ret of
+    [Just s] -> printMessage s
+    _        -> error "Impossibru!"
+
+-- | Execute a command on the given server, then print the response.
+serverCommand :: String -> String -> IO ()
+serverCommand name cmd = do
+  ret <- dbusCall "command" [toVariant name, toVariant cmd]
   case fromVariant <$> methodReturnBody ret of
     [Just bs] -> mapM_ BS.putStrLn $ reverse bs
     _         -> error "Impossibru!"
 
 -- | Print the last n lines from the server log.
-getServerBacklog :: Int32 -> IO ()
-getServerBacklog n = do
-  ret <- dbusCall "backlog" [toVariant n]
+getServerBacklog :: String -> Int32 -> IO ()
+getServerBacklog name n = do
+  ret <- dbusCall "backlog" [toVariant name, toVariant n]
   case fromVariant <$> methodReturnBody ret of
-    [Just bs] -> mapM_ BS.putStrLn $ reverse bs
-    _         -> error "Impossibru!"
+    [Just s] -> printMessage s
+    _        -> error "Impossibru!"
+
+printMessage :: String -> IO ()
+printMessage "" = return ()
+printMessage s  = putStrLn s

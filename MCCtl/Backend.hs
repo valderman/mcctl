@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | MCCtl backend; this is the part that actually talks to the Minecraft
 --   server.
-module MCCtl.Backend (startServer) where
+module MCCtl.Backend (startMCCtlServer) where
 import qualified Data.ByteString as BS
+import qualified Data.Map.Strict as M
 import Data.Int
 import System.IO
 import System.Process
@@ -11,48 +12,118 @@ import System.FilePath
 import Control.Applicative
 import Control.Monad
 import Control.Concurrent
+import Control.Exception
 import DBus.Client
 import MCCtl.Config
+import MCCtl.Paths
 
-data Instance = Instance {
+-- | State for a single instance.
+data State = State {
+    -- | Minecraft server Java process handle; used to wait for server
+    --   shutdown.
     stProcHdl   :: !ProcessHandle,
+
+    -- | Server process' stdin handle. Used to send commands to the server.
     stInHdl     :: !Handle,
+
+    -- | Server process' stdout handle. Used to extract result messages after
+    --   sending a command.
     stOutHdl    :: !(MVar Handle),
-    stCloseLock :: !(MVar ()),
+
+    -- | Per instance and global config for instance.
     stConfig    :: !Config
   }
 
-startServer :: Config -> IO ()
-startServer cfg = void . forkProcess $ do
+-- | Start the MCCtl server, as well as any autostart instances.
+startMCCtlServer :: GlobalConfig -> IO ()
+startMCCtlServer cfg = void . forkProcess $ do
   client <- connectSystem
   namerep <- requestName client dbusBus [nameDoNotQueue]
   case namerep of
     NamePrimaryOwner -> do
-      st <- spawnServerProc cfg
+      insts <- newMVar M.empty
+      closeLock <- newEmptyMVar
       export client dbusObj [
-          autoMethod dbusIface "stop"    $ stop st,
-          autoMethod dbusIface "command" $ command st,
-          autoMethod dbusIface "backlog" $ backlog st
+          autoMethod dbusIface "shutdown" $ putMVar closeLock (),
+          autoMethod dbusIface "start"    $ start cfg insts,
+          autoMethod dbusIface "stop"     $ stop insts,
+          autoMethod dbusIface "command"  $ command insts,
+          autoMethod dbusIface "backlog"  $ backlog insts
         ]
-      void . forkIO $ discardLogLines st
-      takeMVar $ stCloseLock st
-      void $ releaseName client "cc.ekblad.mcctl"
+      takeMVar $ closeLock
+      void $ stop insts ""
+      void $ releaseName client dbusBus
       disconnect client
     _ -> do
       return ()
 
+start :: GlobalConfig -> MVar (M.Map String State) -> String -> IO String
+start cfg insts name = modifyMVar insts $ \m -> do
+    case M.lookup name m of
+      Just _ -> do
+        return (m, "instance '" ++ name ++ "' is already running")
+      _ -> do
+        i <- try (readFile instfile) :: IO (Either SomeException String)
+        case i of
+          Right i' -> do
+            case reads i' of
+              [(inst, _)] -> do
+                st <- start' $ Config name cfg inst
+                return (M.insert name st m, "")
+              _ -> do
+                return (m, "unable to parse instance file '" ++ instfile ++ "'")
+          _ -> do
+            return (m, "file does not exist: '" ++ instfile ++ "'")
+  where
+    instfile = instanceFilePath cfg name
+
+stop :: MVar (M.Map String State) -> String -> IO String
+stop insts "" = modifyMVar insts $ \m -> do
+  mapM_ (stop' . snd) $ M.toList m
+  return (M.empty, "")
+stop insts name = modifyMVar insts $ \m -> do
+  case M.lookup name m of
+    Just st -> do
+      stop' st
+      return (M.delete name m, "")
+    _ -> do
+      return (m, "no such instance running")
+
+command :: MVar (M.Map String State) -> String -> String -> IO [BS.ByteString]
+command insts "" cmd = withMVar insts $ \m -> do
+  reps <- mapM (command' cmd . snd) $ M.toList m
+  return $ concat reps
+command insts name cmd = withMVar insts $ \m -> do
+  case M.lookup name m of
+    Just st -> command' cmd st
+    _       -> return ["no such instance running"]
+
+backlog :: MVar (M.Map String State) -> String -> Int32 -> IO String
+backlog insts "" n = withMVar insts $ \m -> do
+  reps <- mapM (backlog' n . snd) $ M.toList m
+  return $ unlines reps
+backlog insts name n = withMVar insts $ \m -> do
+  case M.lookup name m of
+    Just st -> backlog' n st
+    _       -> return "no such instance running"
+
+-- | Start a new server process, complete with log eater and all.
+start' :: Config -> IO State
+start' cfg = do
+  st <- spawnServerProc cfg
+  void . forkIO $ discardLogLines st
+  return st
+
 -- | Send a stop message to the server, then wait for it to exit.
-stop :: Instance -> IO ()
-stop st = do
+stop' :: State -> IO ()
+stop' st = do
   hPutStrLn (stInHdl st) "stop"
   hFlush $ stInHdl st
   void . waitForProcess $ stProcHdl st
-  putMVar (stCloseLock st) ()
 
 -- | Perform a command, wait for 100ms, then examine the log for a result.
-command :: Instance -> String -> IO [BS.ByteString]
-command st cmd = do
-  putStrLn "command taking lock"
+command' :: String -> State -> IO [BS.ByteString]
+command' cmd st = do
   withMVar (stOutHdl st) $ \h -> do
     discardLines h
     hPutStrLn (stInHdl st) cmd
@@ -62,22 +133,24 @@ command st cmd = do
     return ls
 
 -- | Get the n latest entries in the log file.
-backlog :: Instance -> Int32 -> IO String
-backlog st n = do
-    readProcess "tail" ["-n", show n, logfile] ""
+backlog' :: Int32 -> State -> IO String
+backlog' n st = do
+    readProcess "/usr/bin/tail" ["-n", show n, logfile] ""
   where
-    logfile = serverDirectory (stConfig st) </> "logs" </> "latest.log"
+    logfile =
+      serverDirectory (instanceConfig $ stConfig st) </> "logs" </> "latest.log"
 
 -- | Spawn a Minecraft server process.
-spawnServerProc :: Config -> IO Instance
-spawnServerProc cfg@(Config {serverJAR = jar, serverDirectory = dir}) = do
+spawnServerProc :: Config -> IO State
+spawnServerProc cfg = do
     (Just i, Just o, Nothing, ph) <- createProcess cp
-    Instance <$> pure ph
-             <*> pure i
-             <*> newMVar o
-             <*> newEmptyMVar
-             <*> pure cfg
+    State <$> pure ph
+          <*> pure i
+          <*> newMVar o
+          <*> pure cfg
   where
+    jar = instanceJAR cfg
+    dir = instanceDirectory cfg
     cp = CreateProcess {
         cmdspec       = RawCommand "/usr/bin/java" ["-jar", jar, "nogui"],
         cwd           = Just dir,
@@ -92,10 +165,14 @@ spawnServerProc cfg@(Config {serverJAR = jar, serverDirectory = dir}) = do
 
 -- | Wait 10 seconds, then discard any lines from Minecraft's stdout.
 --   Repeat indefinitely.
-discardLogLines :: Instance -> IO ()
-discardLogLines st = forever $ do
+discardLogLines :: State -> IO ()
+discardLogLines st = do
   threadDelay 10000000
-  withMVar (stOutHdl st) discardLines
+  eof <- withMVar (stOutHdl st) $ \h -> do
+    eof <- hIsClosed h
+    if eof then return True
+           else discardLines h >> return False
+  unless eof $ discardLogLines st
 
 -- | Discard any lines currently waiting to be read from the given handle.
 discardLines :: Handle -> IO ()

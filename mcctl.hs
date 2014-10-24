@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 import System.Environment
 import System.Console.GetOpt
-import Control.Exception
-import Data.Maybe
 import Data.Default
 import MCCtl.Frontend
 import MCCtl.Backend
@@ -12,30 +10,36 @@ main :: IO ()
 main = do
   args <- getArgs
   let (opts, cmds, _) = getOpt Permute options args
-      opts' = listToMaybe $ reverse $ catMaybes opts
-      cfgfile = maybe "/etc/mcctl.cfg" id opts'
-  cfgstr <- try (readFile "/etc/mcctl.cfg") :: IO (Either SomeException String)
-  case fmap reads cfgstr of
-    Right [(cfg, "")] -> do
-      case cmds of
-        []             -> putStrLn "Usage: mcctl start|stop|restart|command"
-        ["start"]      -> startServer cfg
-        ["stop"]       -> stopServer
-        ["restart"]    -> stopServer >> startServer cfg
-        ["backlog", n] -> getServerBacklog $ read n
-        cmd            -> serverCommand $ unwords cmd
-    Left _ -> do
-      putStrLn $ "no configuration file found; " ++
-                 "writing write default config to " ++ cfgfile
-      let defcfg = show (def :: Config)
-      res <- try (writeFile cfgfile defcfg) :: IO (Either SomeException ())
-      case res of
-        Left _ -> error $ "couldn't write default config to " ++ cfgfile
-        _      -> return ()
-    _ -> do
-      error $ "unable to parse " ++ cfgfile
+      cfg = foldr (.) id opts def
+  runCmd cfg cmds
 
-options :: [OptDescr (Maybe FilePath)]
+-- | All our command line options.
+options :: [OptDescr (GlobalConfig -> GlobalConfig)]
 options = [
-    Option "c" ["config"] (ReqArg Just "FILE") "Read configuration from FILE."
+    Option "c" ["config-dir"]
+               (ReqArg (\d c -> c {cfgInstanceDir = d}) "DIR")
+               "Read instance configurations from DIR.",
+    Option "s" ["server"]
+               (ReqArg (\s c -> c {cfgTargetServer = s}) "SERVER")
+               ("Action affects the specified server. " ++
+                "Affects all servers if unset.")
   ]
+
+-- | Parse non-option command lines and execute any commands.
+runCmd :: GlobalConfig -> [String] -> IO ()
+runCmd cfg args = do
+    case args of
+      ["init"]       -> startMCCtlServer cfg
+      ["shutdown"]   -> shutdownServer
+      ["start"]      -> startServer server
+      ["start", s]   -> startServer s
+      ["stop"]       -> stopServer server
+      ["stop", s]    -> stopServer s
+      ["restart"]    -> restartServer server
+      ["restart", s] -> restartServer s
+      ["log", n]     -> getServerBacklog server $ read n
+      ["log", n, s]  -> getServerBacklog s $ read n
+      cmd            -> serverCommand server $ unwords cmd
+  where
+    server = cfgTargetServer cfg
+    restartServer name = stopServer name >> startServer name
