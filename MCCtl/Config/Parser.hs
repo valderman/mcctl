@@ -13,7 +13,7 @@ parseInstance bs = do
     Right res -> flip parseMaybe res $ \o -> do
       Instance <$> o .: "serverDirectory"
                <*> o .:? "serverJAR" .!= "minecraft_server.jar"
-               <*> o .:? "autostart" .!= False
+               <*> o .:? "autostart" .!= True
                <*> o .:? "serverProperties"
     _ -> do
       Nothing
