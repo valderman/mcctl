@@ -60,24 +60,29 @@ applicable instances if no instance name is given.
 Instance files
 --------------
 
-Instance files are simple YAML files with the following properties:
+Instance files are simple YAML files with the following fields:
 
   * `server-directory`: this instance's data directory; contains the world file,
-    logs and all other Minecraft server data. This field is mandatory.
+    logs and all other Minecraft server data.
+    This field is mandatory.
 
   * `server-jar`: path to Minecraft server JAR file, either absolute or relative
-    to `serverDirectory`. Defaults to `minecraft_server.jar`
+    to `serverDirectory`.
+    Defaults to `minecraft_server.jar`
 
   * `autostart`: start this instance when mcctl starts? `true` or `false`.
     Defaults to `true`.
 
-  * `restart`: restart this instance if it crashes? Defaults to `true`.
+  * `restart`: restart this instance if it crashes?
+    Defaults to `true`.
 
   * `restart-cooldown`: don't restart instance if it was already restarted less
-    than `n` seconds ago. Defaults to 3 seconds.
+    than `n` seconds ago. Only meaningful if `restart` is `true`.
+    Defaults to 3 seconds.
 
   * `server-properties`: contents for the instance's `server.properties` file.
     No checking is done of the syntax of this property; it's copied verbatim
-    into place. Defaults to the default Minecraft `server.properties` file.
+    into place.
+    Defaults to the default Minecraft `server.properties` file.
 
 See `sample-instance.yaml` for more information.
