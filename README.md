@@ -3,22 +3,20 @@ mcctl
 A program to control Minecraft servers in a robust and simple way.
 
 
+Dependencies
+------------
+
+mcctl depends on wget, systemd and any recent version of Java.
+
+
 Installation
 ------------
 
-Since mcctl uses DBus for its communication, you will want to allow root to run
-the mcctl daemon and send it commands. To do this, copy `cc.ekblad.mcctl.conf`
-to `/etc/dbus-1/system.d/`. To allow a user other than root to control mcctl,
-change `user="root"` to `user="mcctl-user"` in
-`cc.ekblad.mcctl.conf`.
+If you are running Debian or any of its derivatives, you should create a
+Debian package of mcctl by running `./builddeb.sh`, and then install it using
+dpkg as usual: `sudo dpkg -i ../mcctl_0.1-1_amd64.deb`.
 
-In order to have mcctl start and stop cleanly on
-system boot/shutdown, assuming that you are using a distribution with
-`systemd`, copy `mcctl.service` to `/etc/systemd/system/` and run
-`sudo systemctl install mcctl`. If mcctl is not installed in `/usr/bin`,
-you will want to modify `mcctl.service` to point to wherever your mcctl binary
-resides. You may also want to add a `-c` flag, if you don't want your config
-to be read from `/etc/mcctl.yaml`.
+Otherwise, run `install.sh` to install and `uninstall.sh` to uninstall.
 
 
 Usage
