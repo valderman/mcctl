@@ -139,6 +139,7 @@ backlog insts name n = withMVar insts $ \m -> do
 -- | Start a new server process, complete with log eater and all.
 start' :: MVar (M.Map String State) -> Config -> IO State
 start' insts cfg = do
+    putStrLn $ "Starting instance '" ++ name ++ "'..."
     st <- spawnServerProc cfg
     logeater <- forkIO $ discardLogLines st
     void . forkIO $ monitorServerProc st logeater
