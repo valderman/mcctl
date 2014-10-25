@@ -54,25 +54,25 @@ directory, or treat it as an instance configuration file if it is a file.
 
 To start a particular instance:
 
-   # mcctl start your-instance
+    # mcctl start your-instance
 
 To stop an instance:
 
-   # mcctl stop your-instance
+    # mcctl stop your-instance
 
 To send a command to the server running in a particular instance:
 
-   # mcctl time set 0 -i your-instance
+    # mcctl time set 0 -i your-instance
 
 This will set the in-game time to 0 in `your-instance`.
 
 To view the last `n` items of an instance:
 
-   # mcctl log n your-instance
+    # mcctl log n your-instance
 
 To shut down the mcctl daemon and all running instances:
 
-   # mcctl shutdown
+    # mcctl shutdown
 
 Any command which allows you to select a particular instance will affect *all*
 applicable instances if no instance name is given.
@@ -106,4 +106,4 @@ Instance files are simple YAML files with the following fields:
     into place.
     Defaults to the default Minecraft `server.properties` file.
 
-See `sample-instance.yaml` for more information.
+See `default.yaml` for more information.
