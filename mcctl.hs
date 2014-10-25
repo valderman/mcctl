@@ -1,39 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 import System.Environment
-import System.Directory
-import System.IO.Unsafe
-import System.Console.GetOpt
-import Data.Default
 import MCCtl.Frontend
 import MCCtl.MiddleEnd
 import MCCtl.Config
+import MCCtl.Args
 
 main :: IO ()
 main = do
-  args <- getArgs
-  let (opts, cmds, _) = getOpt Permute options args
-      cfg = foldr (.) id opts def
-  runCmd cfg cmds
-
--- | All our command line options.
-options :: [OptDescr (GlobalConfig -> GlobalConfig)]
-options = [
-    Option "c" ["config-dir"]
-               (ReqArg setCfgPath "CONFIG")
-               ("Read instance configuration from CONFIG. If CONFIG is an " ++
-               "instance file, that is the only instance available to " ++
-               "mcctl. If it is a directory, all instance files therein " ++
-               "available to mcctl. Defaults to /etc/mcctl.yaml."),
-    Option "i" ["instance"]
-               (ReqArg (\s c -> c {cfgTargetServer = s}) "INSTANCE")
-               ("Action affects the specified instance. " ++
-                "Affects all servers if unset.")
-  ]
-  where
-    setCfgPath path cfg = unsafePerformIO $ do
-      isdir <- doesDirectoryExist path
-      let p = if isdir then Directory path else File path
-      return $ cfg {cfgConfigPath = p}
+  opts <- parseOpts `fmap` getArgs
+  case opts of
+    Right (cfg, cmds) -> runCmd cfg cmds
+    Left msg          -> putStrLn msg
 
 -- | Parse non-option command lines and execute any commands.
 runCmd :: GlobalConfig -> [String] -> IO ()

@@ -19,6 +19,7 @@ executable mcctl
   other-modules:
     MCCtl.Config
     MCCtl.Config.Parser
+    MCCtl.Args
     MCCtl.Frontend
     MCCtl.MiddleEnd
     MCCtl.Backend

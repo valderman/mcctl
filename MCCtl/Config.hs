@@ -39,7 +39,10 @@ data GlobalConfig = GlobalConfig {
 
     -- | Given commands affect this server.
     --   Does not affect init or shutdown.
-    cfgTargetServer :: !String
+    cfgTargetServer :: !String,
+
+    -- | Print a help message instead of doing anything else?
+    cfgPrintHelp    :: !Bool
   }
 
 -- | A complete instance configuration.
@@ -51,8 +54,9 @@ data Config = Config {
 
 instance Default GlobalConfig where
   def = GlobalConfig {
-      cfgConfigPath  = File "/etc/mcctl.yaml",
-      cfgTargetServer = ""
+      cfgConfigPath   = File "/etc/mcctl.yaml",
+      cfgTargetServer = "",
+      cfgPrintHelp    = False
     }
 
 -- | Instance configuration path; may be either a file or a directory.
