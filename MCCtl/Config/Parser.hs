@@ -11,9 +11,9 @@ parseInstance :: BS.ByteString -> Maybe Instance
 parseInstance bs = do
   case decodeEither bs of
     Right res -> flip parseMaybe res $ \o -> do
-      Instance <$> o .: "serverDirectory"
-               <*> o .:? "serverJAR" .!= "minecraft_server.jar"
+      Instance <$> o .:  "server-directory"
+               <*> o .:? "server-jar" .!= "minecraft_server.jar"
                <*> o .:? "autostart" .!= True
-               <*> o .:? "serverProperties"
+               <*> o .:? "server-properties"
     _ -> do
       Nothing
