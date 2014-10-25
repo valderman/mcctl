@@ -2,4 +2,4 @@ dist/build/mcctl/mcctl /usr/bin/
 cc.ekblad.mcctl.conf   /etc/dbus-1/system.d/
 mcctl.service          /lib/systemd/system/
 README.md              /usr/share/doc/mcctl/
-sample-instance.yaml   /usr/share/doc/mcctl/
+default.yaml           /usr/lib/mcctl/instances/
