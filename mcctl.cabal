@@ -20,6 +20,7 @@ executable mcctl
     MCCtl.Config
     MCCtl.Config.Parser
     MCCtl.Frontend
+    MCCtl.MiddleEnd
     MCCtl.Backend
     MCCtl.DBus
     MCCtl.Paths

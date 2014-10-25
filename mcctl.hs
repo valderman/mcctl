@@ -5,7 +5,7 @@ import System.IO.Unsafe
 import System.Console.GetOpt
 import Data.Default
 import MCCtl.Frontend
-import MCCtl.Backend
+import MCCtl.MiddleEnd
 import MCCtl.Config
 
 main :: IO ()

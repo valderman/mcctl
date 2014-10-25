@@ -1,23 +1,20 @@
-{-# LANGUAGE OverloadedStrings #-}
 -- | MCCtl backend; this is the part that actually talks to the Minecraft
 --   server.
-module MCCtl.Backend (startMCCtlServer) where
+module MCCtl.Backend (
+    State, start, stop, backlog, command
+  ) where
 import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as M
 import Data.Int
 import System.IO
 import System.Process
-import System.Posix.Process
 import System.FilePath
 import System.Directory
 import System.Exit
 import Control.Applicative
 import Control.Monad
 import Control.Concurrent
-import Control.Exception
-import DBus.Client
 import MCCtl.Config
-import MCCtl.Config.Parser
 import MCCtl.Paths
 
 -- | State for a single instance.
@@ -40,105 +37,9 @@ data State = State {
     stDoneLock  :: !(MVar ())
   }
 
--- | Start the MCCtl server, as well as any autostart instances.
-startMCCtlServer :: GlobalConfig -> IO ()
-startMCCtlServer cfg = void . forkProcess $ do
-    client <- connectSystem
-    namerep <- requestName client dbusBus [nameDoNotQueue]
-    case namerep of
-      NamePrimaryOwner -> do
-        insts <- newMVar M.empty
-        closeLock <- newEmptyMVar
-        export client dbusObj [
-            autoMethod dbusIface "shutdown" $ shutdown closeLock insts client,
-            autoMethod dbusIface "start"    $ start False cfg insts,
-            autoMethod dbusIface "stop"     $ stop insts,
-            autoMethod dbusIface "command"  $ command insts,
-            autoMethod dbusIface "backlog"  $ backlog insts
-          ]
-        void $ start True cfg insts ""
-        takeMVar $ closeLock
-        disconnect client
-      _ -> do
-        return ()
-  where
-    shutdown done insts client = do
-      void $ stop insts ""
-      void $ releaseName client dbusBus
-      putMVar done ()
-
--- | Start a new instance, or all eligible instances if name is the empty
---   string.
-start :: Bool                      -- ^ Only start autostart instances.
-      -> GlobalConfig              -- ^ Global config.
-      -> MVar (M.Map String State) -- ^ All currently running instances.
-      -> String                    -- ^ Name of instance to start.
-      -> IO String                 -- ^ Any output resulting from the attempted
-                                   --   start.
-start only_auto cfg insts "" = do
-  is <- getAllInstances cfg
-  unlines <$> mapM (start only_auto cfg insts) is
-start only_auto cfg insts name = modifyMVar insts $ \m -> do
-    case M.lookup name m of
-      Just _ -> do
-        return (m, "instance '" ++ name ++ "' is already running")
-      _ -> do
-        i <- try (BS.readFile instf) :: IO (Either SomeException BS.ByteString)
-        case i of
-          Right i' -> do
-            case parseInstance i' of
-              Just inst -> do
-                if (not only_auto || autostart inst)
-                  then do
-                    st <- start' insts (Config name cfg inst)
-                    return (M.insert name st m, "")
-                  else do
-                    return (m, "")
-              _ -> do
-                return (m, "unable to parse instance file '" ++ instf ++ "'")
-          _ -> do
-            return (m, "file does not exist: '" ++ instf ++ "'")
-  where
-    instf = instanceFilePath cfg name
-
--- | Stop a running instance, or all running instances if name is the empty
---   string.
-stop :: MVar (M.Map String State) -> String -> IO String
-stop insts "" = modifyMVar insts $ \m -> do
-  mapM_ (stop' . snd) $ M.toList m
-  return (M.empty, "")
-stop insts name = modifyMVar insts $ \m -> do
-  case M.lookup name m of
-    Just st -> do
-      stop' st
-      return (M.delete name m, "")
-    _ -> do
-      return (m, "no such instance running")
-
--- | Sent a command to a instance, or all if name is the empty string.
-command :: MVar (M.Map String State) -> String -> String -> IO [BS.ByteString]
-command insts "" cmd = withMVar insts $ \m -> do
-  reps <- mapM (command' cmd . snd) $ M.toList m
-  return $ concat reps
-command insts name cmd = withMVar insts $ \m -> do
-  case M.lookup name m of
-    Just st -> command' cmd st
-    _       -> return ["no such instance running"]
-
--- | Get the last n lines from the log of the given instance, or all instances
---   if name is the empty string.
-backlog :: MVar (M.Map String State) -> String -> Int32 -> IO String
-backlog insts "" n = withMVar insts $ \m -> do
-  reps <- mapM (backlog' n . snd) $ M.toList m
-  return $ unlines reps
-backlog insts name n = withMVar insts $ \m -> do
-  case M.lookup name m of
-    Just st -> backlog' n st
-    _       -> return "no such instance running"
-
 -- | Start a new server process, complete with log eater and all.
-start' :: MVar (M.Map String State) -> Config -> IO State
-start' insts cfg = do
+start :: MVar (M.Map String State) -> Config -> IO State
+start insts cfg = do
     putStrLn $ "Starting instance '" ++ name ++ "'..."
     st <- spawnServerProc cfg
     logeater <- forkIO $ discardLogLines st
@@ -156,20 +57,20 @@ start' insts cfg = do
         ExitFailure _ -> do
           putStrLn $ "Instance '" ++name++ "' crashed unexpectedly; restarting"
           modifyMVar_ insts $ \m -> do
-            newst <- start' insts cfg
+            newst <- start insts cfg
             return $ M.adjust (const newst) name m
 
 -- | Send a stop message to the server, then wait for it to exit.
-stop' :: State -> IO ()
-stop' st = do
+stop :: State -> IO ()
+stop st = do
   putStrLn $ "Stopping instance '" ++ (instanceName $ stConfig st)
   hPutStrLn (stInHdl st) "stop"
   hFlush $ stInHdl st
   takeMVar $ stDoneLock st
 
 -- | Perform a command, wait for 100ms, then examine the log for a result.
-command' :: String -> State -> IO [BS.ByteString]
-command' cmd st = do
+command :: String -> State -> IO [BS.ByteString]
+command cmd st = do
   withMVar (stOutHdl st) $ \h -> do
     discardLines h
     hPutStrLn (stInHdl st) cmd
@@ -179,8 +80,8 @@ command' cmd st = do
     return ls
 
 -- | Get the n latest entries in the log file.
-backlog' :: Int32 -> State -> IO String
-backlog' n st = do
+backlog :: Int32 -> State -> IO String
+backlog n st = do
     readProcess "/usr/bin/tail" ["-n", show n, logfile] ""
   where
     logfile =
