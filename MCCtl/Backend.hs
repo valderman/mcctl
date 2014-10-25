@@ -166,6 +166,7 @@ backlog' n st = do
 spawnServerProc :: Config -> IO State
 spawnServerProc cfg = do
     createDirectoryIfMissing True dir
+    writeFile (dir </> "eula.txt") "eula=true"
     case serverProperties $ instanceConfig cfg of
       Just props -> writeFile (dir </> "server.properties") props
       _          -> return ()
