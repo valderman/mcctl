@@ -1,0 +1,12 @@
+[Unit]
+Description=MCCtl Minecraft server manager
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/mcctl init
+Type=oneshot
+RemainAfterExit=yes
+ExecStop=/usr/bin/mcctl shutdown
+
+[Install]
+WantedBy=multi-user.target
