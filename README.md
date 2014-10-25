@@ -19,15 +19,38 @@ dpkg as usual: `sudo dpkg -i ../mcctl_0.1-1_amd64.deb`.
 Otherwise, run `install.sh` to install and `uninstall.sh` to uninstall.
 
 
-Usage
------
+Quickstart guide
+----------------
 
-To start the mcctl daemon:
+Start mcctl using systemd:
 
-    # mcctl init -c your-config-directory
+    # systemctl start mcctl
+
+This will start the mcctl daemon and the default instance installed in
+`/usr/lib/mcctl/instances/default.yaml`. You may want to inspect that file
+and change any settings that are not to your liking before starting mcctl.
+
+To import an already existing world into mcctl, copy the entire world directory
+to `/usr/lib/mcctl/default` and overwrite the `server-properties` field of
+`/usr/lib/mcctl/instances/default.yaml` with the contents of your old
+`server.properties` file. Then, give ownership of your world directory to
+mcctl:
+
+    # chown -R mcctl:mcctl /usr/lib/mcctl/default
+
+That's all there is to it.
+
+
+More about usage
+----------------
+
+To start the mcctl daemon manually:
+
+    # mcctl init -c your-config
 
 This will start the daemon as well as all instances with the `autostart`
-property. mcctl will look for instance files in `your-config-directory`.
+property. mcctl will look for instance files in `your-config` if it is a
+directory, or treat it as an instance configuration file if it is a file.
 
 To start a particular instance:
 
