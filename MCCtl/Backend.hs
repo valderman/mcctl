@@ -10,6 +10,7 @@ import System.Process
 import System.Posix.Process
 import System.FilePath
 import System.Directory
+import System.Exit
 import Control.Applicative
 import Control.Monad
 import Control.Concurrent
@@ -33,7 +34,10 @@ data State = State {
     stOutHdl    :: !(MVar Handle),
 
     -- | Per instance and global config for instance.
-    stConfig    :: !Config
+    stConfig    :: !Config,
+
+    -- | Full when the instance is done and has exited cleanly.
+    stDoneLock  :: !(MVar ())
   }
 
 -- | Start the MCCtl server, as well as any autostart instances.
@@ -86,7 +90,7 @@ start only_auto cfg insts name = modifyMVar insts $ \m -> do
               Just inst -> do
                 if (not only_auto || autostart inst)
                   then do
-                    st <- start' $ Config name cfg inst
+                    st <- start' insts (Config name cfg inst)
                     return (M.insert name st m, "")
                   else do
                     return (m, "")
@@ -133,18 +137,34 @@ backlog insts name n = withMVar insts $ \m -> do
     _       -> return "no such instance running"
 
 -- | Start a new server process, complete with log eater and all.
-start' :: Config -> IO State
-start' cfg = do
-  st <- spawnServerProc cfg
-  void . forkIO $ discardLogLines st
-  return st
+start' :: MVar (M.Map String State) -> Config -> IO State
+start' insts cfg = do
+    st <- spawnServerProc cfg
+    logeater <- forkIO $ discardLogLines st
+    void . forkIO $ monitorServerProc st logeater
+    return st
+  where
+    name = instanceName cfg
+    monitorServerProc st logeater = do
+      ec <- waitForProcess $ stProcHdl st
+      killThread logeater
+      case ec of
+        ExitSuccess -> do
+          putStrLn $ "Instance '" ++ name ++ "' exited cleanly"
+          putMVar (stDoneLock st) ()
+        ExitFailure _ -> do
+          putStrLn $ "Instance '" ++name++ "' crashed unexpectedly; restarting"
+          modifyMVar_ insts $ \m -> do
+            newst <- start' insts cfg
+            return $ M.adjust (const newst) name m
 
 -- | Send a stop message to the server, then wait for it to exit.
 stop' :: State -> IO ()
 stop' st = do
+  putStrLn $ "Stopping instance '" ++ (instanceName $ stConfig st)
   hPutStrLn (stInHdl st) "stop"
   hFlush $ stInHdl st
-  void . waitForProcess $ stProcHdl st
+  takeMVar $ stDoneLock st
 
 -- | Perform a command, wait for 100ms, then examine the log for a result.
 command' :: String -> State -> IO [BS.ByteString]
@@ -178,6 +198,7 @@ spawnServerProc cfg = do
           <*> pure i
           <*> newMVar o
           <*> pure cfg
+          <*> newEmptyMVar
   where
     jar = instanceJAR cfg
     dir = instanceDirectory cfg
@@ -196,13 +217,9 @@ spawnServerProc cfg = do
 -- | Wait 10 seconds, then discard any lines from Minecraft's stdout.
 --   Repeat indefinitely.
 discardLogLines :: State -> IO ()
-discardLogLines st = do
+discardLogLines st = forever $ do
   threadDelay 10000000
-  eof <- withMVar (stOutHdl st) $ \h -> do
-    eof <- hIsClosed h
-    if eof then return True
-           else discardLines h >> return False
-  unless eof $ discardLogLines st
+  withMVar (stOutHdl st) discardLines
 
 -- | Discard any lines currently waiting to be read from the given handle.
 discardLines :: Handle -> IO ()
