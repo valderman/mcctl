@@ -39,26 +39,29 @@ data State = State {
 -- | Start the MCCtl server, as well as any autostart instances.
 startMCCtlServer :: GlobalConfig -> IO ()
 startMCCtlServer cfg = void . forkProcess $ do
-  client <- connectSystem
-  namerep <- requestName client dbusBus [nameDoNotQueue]
-  case namerep of
-    NamePrimaryOwner -> do
-      insts <- newMVar M.empty
-      closeLock <- newEmptyMVar
-      export client dbusObj [
-          autoMethod dbusIface "shutdown" $ putMVar closeLock (),
-          autoMethod dbusIface "start"    $ start False cfg insts,
-          autoMethod dbusIface "stop"     $ stop insts,
-          autoMethod dbusIface "command"  $ command insts,
-          autoMethod dbusIface "backlog"  $ backlog insts
-        ]
-      void $ start True cfg insts ""
-      takeMVar $ closeLock
+    client <- connectSystem
+    namerep <- requestName client dbusBus [nameDoNotQueue]
+    case namerep of
+      NamePrimaryOwner -> do
+        insts <- newMVar M.empty
+        closeLock <- newEmptyMVar
+        export client dbusObj [
+            autoMethod dbusIface "shutdown" $ shutdown closeLock insts client,
+            autoMethod dbusIface "start"    $ start False cfg insts,
+            autoMethod dbusIface "stop"     $ stop insts,
+            autoMethod dbusIface "command"  $ command insts,
+            autoMethod dbusIface "backlog"  $ backlog insts
+          ]
+        void $ start True cfg insts ""
+        takeMVar $ closeLock
+        disconnect client
+      _ -> do
+        return ()
+  where
+    shutdown done insts client = do
       void $ stop insts ""
       void $ releaseName client dbusBus
-      disconnect client
-    _ -> do
-      return ()
+      putMVar done ()
 
 -- | Start a new instance, or all eligible instances if name is the empty
 --   string.
