@@ -37,7 +37,8 @@ executable mcctl
     filepath >=1.3,
     yaml >= 0.8,
     directory >= 1.2,
-    containers >= 0.5
+    containers >= 0.5,
+    time >= 1.4
   ghc-options:
     -Wall -Werror -O2
   default-language:
