@@ -34,8 +34,8 @@ data Instance = Instance {
 
 -- | Command-line settable configuration.
 data GlobalConfig = GlobalConfig {
-    -- | Directory containing instance configurations.
-    cfgInstanceDir  :: !FilePath,
+    -- | File or directory containing instance configurations.
+    cfgConfigPath   :: !ConfigPath,
 
     -- | Given commands affect this server.
     --   Does not affect init or shutdown.
@@ -51,6 +51,9 @@ data Config = Config {
 
 instance Default GlobalConfig where
   def = GlobalConfig {
-      cfgInstanceDir  = "/etc/mcctl",
+      cfgConfigPath  = File "/etc/mcctl.yaml",
       cfgTargetServer = ""
     }
+
+-- | Instance configuration path; may be either a file or a directory.
+data ConfigPath = File FilePath | Directory FilePath
