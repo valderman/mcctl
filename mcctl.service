@@ -8,6 +8,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStop=/usr/bin/mcctl shutdown
 User=mcctl
+Group=mcctl
 WorkingDirectory=/usr/lib/mcctl
 
 [Install]
