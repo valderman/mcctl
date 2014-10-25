@@ -5,6 +5,7 @@ module MCCtl.Backend (
   ) where
 import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as M
+import Data.Time.Clock
 import Data.Int
 import System.IO
 import System.Process
@@ -34,7 +35,10 @@ data State = State {
     stConfig    :: !Config,
 
     -- | Full when the instance is done and has exited cleanly.
-    stDoneLock  :: !(MVar ())
+    stDoneLock  :: !(MVar ()),
+
+    -- | When was the instance last (re)started?
+    stStartTime :: !UTCTime
   }
 
 -- | Start a new server process, complete with log eater and all.
@@ -55,10 +59,23 @@ start insts cfg = do
           putStrLn $ "Instance '" ++ name ++ "' exited cleanly"
           putMVar (stDoneLock st) ()
         ExitFailure _ -> do
-          putStrLn $ "Instance '" ++name++ "' crashed unexpectedly; restarting"
-          modifyMVar_ insts $ \m -> do
-            newst <- start insts cfg
-            return $ M.adjust (const newst) name m
+          modifyMVar_ insts $ pure . M.delete name
+          t <- getCurrentTime
+          case restartOnFailure $ instanceConfig cfg of
+            Restart cooldown
+              | diffUTCTime t (stStartTime st) > cooldown -> do
+                putStrLn $ "Instance '" ++ name ++
+                           "' crashed unexpectedly; restarting!"
+                modifyMVar_ insts $ \m -> do
+                  newst <- start insts cfg
+                  return $ M.insert name newst m
+              | otherwise -> do
+                putStrLn $ "Instance '" ++ name ++ "' crashed " ++
+                           "unexpectedly, but is crashing too fast to be " ++
+                           "restarted!"
+            DontRestart -> do
+                putStrLn $ "Instance '" ++ name ++ "' crashed " ++
+                           "unexpectedly, but is not configured to restart!"
 
 -- | Send a stop message to the server, then wait for it to exit.
 stop :: State -> IO ()
@@ -101,6 +118,7 @@ spawnServerProc cfg = do
           <*> newMVar o
           <*> pure cfg
           <*> newEmptyMVar
+          <*> getCurrentTime
   where
     jar = instanceJAR cfg
     dir = instanceDirectory cfg

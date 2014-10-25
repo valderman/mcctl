@@ -2,6 +2,7 @@
 -- | Configuration types and data.
 module MCCtl.Config where
 import Data.Default
+import Data.Time.Clock (NominalDiffTime)
 import DBus (InterfaceName, ObjectPath, BusName)
 
 -- | Interface to listen for commands on.
@@ -28,9 +29,12 @@ data Instance = Instance {
     -- | Start this instance automatically when mcctl starts?
     autostart        :: !Bool,
 
+    -- | Restart the instance if it crashes?
+    restartOnFailure :: !RestartInfo,
+
     -- | Instance server.properties file.
     serverProperties :: !(Maybe String)
-  } deriving (Show, Read)
+  } deriving Show
 
 -- | Command-line settable configuration.
 data GlobalConfig = GlobalConfig {
@@ -43,14 +47,14 @@ data GlobalConfig = GlobalConfig {
 
     -- | Print a help message instead of doing anything else?
     cfgPrintHelp    :: !Bool
-  }
+  } deriving Show
 
 -- | A complete instance configuration.
 data Config = Config {
     instanceName   :: !String,
     globalConfig   :: !GlobalConfig,
     instanceConfig :: !Instance
-  }
+  } deriving Show
 
 instance Default GlobalConfig where
   def = GlobalConfig {
@@ -59,5 +63,16 @@ instance Default GlobalConfig where
       cfgPrintHelp    = False
     }
 
--- | Instance configuration path; may be either a file or a directory.
-data ConfigPath = File FilePath | Directory FilePath
+-- | Instance configuration path.
+data ConfigPath
+  = File !FilePath      -- ^ Config is a file, describing a single instance.
+  | Directory !FilePath -- ^ Config is a directory containing 0 or more
+                        --   instances.
+    deriving Show
+
+-- | Restart instance on crash?
+data RestartInfo
+  = Restart !NominalDiffTime -- ^ Restart instance, but only if at least n
+                             --   seconds have passed since the last restart.
+  | DontRestart              -- ^ Don't restart instance.
+    deriving Show

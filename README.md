@@ -71,6 +71,11 @@ Instance files are simple YAML files with the following properties:
   * `autostart`: start this instance when mcctl starts? `true` or `false`.
     Defaults to `true`.
 
+  * `restart`: restart this instance if it crashes? Defaults to `true`.
+
+  * `restart-cooldown`: don't restart instance if it was already restarted less
+    than `n` seconds ago. Defaults to 3 seconds.
+
   * `server-properties`: contents for the instance's `server.properties` file.
     No checking is done of the syntax of this property; it's copied verbatim
     into place. Defaults to the default Minecraft `server.properties` file.
