@@ -1,0 +1,14 @@
+Source: mcctl
+Maintainer: Anton Ekblad <anton@ekblad.cc>
+Section: devel
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: mcctl
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: A daemon to manage Minecraft servers robustly and efficiently.
+  Starts and stops your Minecraft server on system boot or shutdown, restarts
+  it when it crashes, runs commands without any hassle and generally makes
+  running a Minecraft server less painful.

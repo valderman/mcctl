@@ -1,0 +1,3 @@
+#!/bin/sh
+adduser --system mcctl --home /usr/lib/mcctl
+systemctl enable mcctl
