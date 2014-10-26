@@ -5,6 +5,7 @@ restart:           true
 restart-cooldown:  3
 heap-size:         1024
 max-heap-size:     1024
+backup-directory:  backups
 server-properties: |
   generator-settings=
   op-permission-level=4

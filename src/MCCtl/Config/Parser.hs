@@ -34,6 +34,7 @@ parseInstance bs = do
                  <*> pure (restartInfo restart cooldown)
                  <*> pure initheap
                  <*> o .:? "max-heap-size" .!= initheap
+                 <*> o .:? "backup-directory"
                  <*> o .:? "server-properties"
       _ -> do
         Nothing

@@ -37,7 +37,10 @@ data Instance = Instance {
 
     -- | Maximum heap size for Java process, in megabytes.
     maxHeapSize      :: !Int,
-    
+
+    -- | Directory in which to put backups.
+    backupDirectory  :: !(Maybe String),
+
     -- | Instance server.properties file.
     serverProperties :: !(Maybe String)
   } deriving Show
