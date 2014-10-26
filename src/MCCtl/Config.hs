@@ -96,7 +96,7 @@ defaultConfig :: FilePath -> String
 defaultConfig srvdir = unlines [
   "server-directory:  " ++ srvdir,
   "server-jar:        ../minecraft_server.1.8.jar",
-  "autostart:         true",
+  "autostart:         false",
   "restart:           true",
   "restart-cooldown:  3",
   "heap-size:         1024",

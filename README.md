@@ -89,7 +89,7 @@ Instance files are simple YAML files with the following fields:
 
   * `server-jar`: path to Minecraft server JAR file, either absolute or relative
     to `serverDirectory`.
-    Defaults to `minecraft_server.jar`
+    Defaults to `minecraft_server.1.8.jar`
 
   * `autostart`: start this instance when mcctl starts? `true` or `false`.
     Defaults to `true`.
