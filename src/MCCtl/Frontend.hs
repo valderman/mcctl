@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 module MCCtl.Frontend where
-import qualified Data.ByteString.Char8 as BS (putStrLn)
 import Data.Int
 import Control.Applicative
 import Control.Monad
@@ -13,6 +12,20 @@ import MCCtl.DBus
 import MCCtl.Config
 import MCCtl.Config.Parser
 
+-- | Run a command on the mcctl server, then print the results.
+runAndPrint :: MemberName -> [Variant] -> IO ()
+runAndPrint cmd args = do
+  ret <- dbusCall cmd args
+  case fromVariant <$> methodReturnBody ret of
+    [Just s] -> printMessage s
+    _        -> error "Impossibru!"
+
+-- | Create a new instance by the given name. Prints an error message if mcctl
+--   is configured to run in single instance mode.
+createInstance :: String -> FilePath -> IO ()
+createInstance name srvdir = runAndPrint "create" $ map toVariant [name, dir]
+  where dir = if null srvdir then name else srvdir
+
 -- | Ask the server for the path to the instance config for the given instance,
 --   then let the user modified it with their chosen $EDITOR. Check that the
 --   config is actually a valid config before atomically overwriting the old
@@ -23,7 +36,7 @@ editConfig cfg name = do
     case fromVariant <$> methodReturnBody ret of
       [Just ["ok", file]] -> edit file
       [Just [err]]        -> putStrLn err
-      x                   -> error $ show x -- error "Impossibru!"
+      _                   -> error "Impossibru!"
   where
     edit file = do
       bin <- maybe "/usr/bin/nano" id <$> lookupEnv "EDITOR"
@@ -56,35 +69,19 @@ shutdownServer = dbusCall "shutdown" [] >> return ()
 
 -- | Tell an instance to shut down, then wait for it to actually do so.
 stopServer :: String -> IO ()
-stopServer name = do
-  ret <- dbusCall "stop" [toVariant name]
-  case fromVariant <$> methodReturnBody ret of
-    [Just s] -> printMessage s
-    _        -> error "Impossibru!"
+stopServer name = runAndPrint "stop" [toVariant name]
 
 -- | Start an instance unless it's already running.
 startServer :: String -> IO ()
-startServer name = do
-  ret <- dbusCall "start" [toVariant name]
-  case fromVariant <$> methodReturnBody ret of
-    [Just s] -> printMessage s
-    _        -> error "Impossibru!"
+startServer name = runAndPrint "start" [toVariant name]
 
 -- | Execute a command on the given server, then print the response.
 serverCommand :: String -> String -> IO ()
-serverCommand name cmd = do
-  ret <- dbusCall "command" [toVariant name, toVariant cmd]
-  case fromVariant <$> methodReturnBody ret of
-    [Just bs] -> mapM_ BS.putStrLn $ reverse bs
-    _         -> error "Impossibru!"
+serverCommand name cmd = runAndPrint "command" [toVariant name, toVariant cmd]
 
 -- | Print the last n lines from the server log.
 getServerBacklog :: String -> Int32 -> IO ()
-getServerBacklog name n = do
-  ret <- dbusCall "backlog" [toVariant name, toVariant n]
-  case fromVariant <$> methodReturnBody ret of
-    [Just s] -> printMessage s
-    _        -> error "Impossibru!"
+getServerBacklog name n = runAndPrint "backlog" [toVariant name, toVariant n]
 
 printMessage :: String -> IO ()
 printMessage "" = return ()

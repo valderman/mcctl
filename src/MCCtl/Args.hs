@@ -27,7 +27,7 @@ options = [
                "mcctl. If it is a directory, all instance files therein " ++
                "available to mcctl. Defaults to /etc/mcctl.yaml."),
     Option "i" ["instance"]
-               (ReqArg (\s c -> c {cfgTargetServer = s}) "INSTANCE")
+               (ReqArg (\s c -> c {cfgTargetServer = Just s}) "INSTANCE")
                ("Action affects the specified instance. " ++
                 "Affects all servers if unset."),
     Option "r" ["resume"]
@@ -35,6 +35,10 @@ options = [
                ("Resume editing an old, broken config instead of starting " ++
                 "from the last known good configuration. " ++
                 "Has no effect if there is no broken config to resume."),
+    Option ""  ["server-dir"]
+               (ReqArg (\s c -> c {cfgServerDirectory = Just s}) "DIR")
+               ("Use this server-directory when creating a new instance. " ++
+                "Defaults to $SERVER_WORKING_DIRECTORY/$INSTANCE_NAME."),
     Option "h?" ["help"]
                 (NoArg $ \c -> c {cfgPrintHelp = True})
                 "Print this help message."

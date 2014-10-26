@@ -26,9 +26,12 @@ runCmd cfg args = do
       ["restart", s] -> restartServer s
       ["edit"]       -> editConfig cfg server
       ["edit", s]    -> editConfig cfg s
+      ["create"]     -> createInstance server srvdir
+      ["create", s]  -> createInstance s srvdir
       ["log", n]     -> getServerBacklog server $ read n
       ["log", n, s]  -> getServerBacklog s $ read n
       cmd            -> serverCommand server $ unwords cmd
   where
-    server = cfgTargetServer cfg
+    server = maybe "" id $ cfgTargetServer cfg
+    srvdir = maybe "" id $ cfgServerDirectory cfg
     restartServer name = stopServer name >> startServer name

@@ -45,17 +45,20 @@ data Instance = Instance {
 -- | Command-line settable configuration.
 data GlobalConfig = GlobalConfig {
     -- | File or directory containing instance configurations.
-    cfgConfigPath   :: !ConfigPath,
+    cfgConfigPath      :: !ConfigPath,
 
     -- | Given commands affect this server.
     --   Does not affect init or shutdown.
-    cfgTargetServer :: !String,
+    cfgTargetServer    :: !(Maybe String),
 
     -- | Print a help message instead of doing anything else?
-    cfgPrintHelp    :: !Bool,
+    cfgPrintHelp       :: !Bool,
 
     -- | Resume editing a broken config when editing.
-    cfgResumeEdit   :: !Bool
+    cfgResumeEdit      :: !Bool,
+
+    -- | Server directory for newly created instances.
+    cfgServerDirectory :: !(Maybe FilePath)
   } deriving Show
 
 -- | A complete instance configuration.
@@ -67,10 +70,11 @@ data Config = Config {
 
 instance Default GlobalConfig where
   def = GlobalConfig {
-      cfgConfigPath   = File "/etc/mcctl.yaml",
-      cfgTargetServer = "",
-      cfgPrintHelp    = False,
-      cfgResumeEdit   = False
+      cfgConfigPath      = File "/etc/mcctl.yaml",
+      cfgTargetServer    = Nothing,
+      cfgPrintHelp       = False,
+      cfgResumeEdit      = False,
+      cfgServerDirectory = Nothing
     }
 
 -- | Instance configuration path.
@@ -86,3 +90,50 @@ data RestartInfo
                              --   seconds have passed since the last restart.
   | DontRestart              -- ^ Don't restart instance.
     deriving Show
+
+-- | Default contents of newly created instances.
+defaultConfig :: FilePath -> String
+defaultConfig srvdir = unlines [
+  "server-directory:  " ++ srvdir,
+  "server-jar:        ../minecraft_server.1.8.jar",
+  "autostart:         true",
+  "restart:           true",
+  "restart-cooldown:  3",
+  "heap-size:         1024",
+  "max-heap-size:     1024",
+  "server-properties: |",
+  "  generator-settings=",
+  "  op-permission-level=4",
+  "  resource-pack-hash=",
+  "  allow-nether=true",
+  "  level-name=world",
+  "  enable-query=false",
+  "  allow-flight=false",
+  "  announce-player-achievements=true",
+  "  server-port=25565",
+  "  max-world-size=29999984",
+  "  level-type=DEFAULT",
+  "  enable-rcon=false",
+  "  force-gamemode=false",
+  "  level-seed=",
+  "  server-ip=",
+  "  network-compression-threshold=256",
+  "  max-build-height=256",
+  "  spawn-npcs=true",
+  "  white-list=false",
+  "  spawn-animals=true",
+  "  snooper-enabled=false",
+  "  hardcore=false",
+  "  online-mode=true",
+  "  resource-pack=",
+  "  pvp=true",
+  "  difficulty=2",
+  "  enable-command-block=false",
+  "  player-idle-timeout=0",
+  "  gamemode=0",
+  "  max-players=20",
+  "  max-tick-time=60000",
+  "  spawn-monsters=true",
+  "  view-distance=10",
+  "  generate-structures=true",
+  "  motd=Powered by mcctl!"]

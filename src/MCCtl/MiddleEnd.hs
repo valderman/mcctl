@@ -6,7 +6,7 @@ import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as M
 import Data.Int
 import System.Posix.Process
-import System.Directory (doesFileExist)
+import System.Directory (doesFileExist, doesDirectoryExist)
 import Control.Applicative
 import Control.Monad
 import Control.Concurrent
@@ -34,7 +34,8 @@ startMCCtlServer cfg = void . forkProcess $ do
             autoMethod dbusIface "stop"       $ stop insts,
             autoMethod dbusIface "command"    $ command insts,
             autoMethod dbusIface "backlog"    $ backlog insts,
-            autoMethod dbusIface "configpath" $ getConfigPath cfg
+            autoMethod dbusIface "configpath" $ getConfigPath cfg,
+            autoMethod dbusIface "create"     $ create cfg
           ]
         void $ start True cfg insts ""
         takeMVar $ closeLock
@@ -46,6 +47,21 @@ startMCCtlServer cfg = void . forkProcess $ do
       void $ stop insts ""
       void $ releaseName client dbusBus
       putMVar done ()
+
+-- | Create a new instance by the given name, unless we're in single instance
+--   mode or if the named instance already exists.
+create :: GlobalConfig -> String -> FilePath -> IO String
+create cfg@(GlobalConfig {cfgConfigPath = Directory _}) name srvdir = do
+  fileexists <- doesFileExist file
+  direxists <- doesDirectoryExist srvdir
+  case (fileexists, direxists) of
+    (True, _)      -> return "instance already exists"
+    (_, True)      -> return "server directory already exists"
+    (False, False) -> writeFile file (defaultConfig srvdir) >> return ""
+  where
+    file = instanceFilePath cfg name
+create _ _ _ = do
+  return "can't create instances in single instance mode"
 
 -- | Get the instance configuration path for the given instance.
 --   Returns ["ok", path] if a config could be unambiguously chosen, or
