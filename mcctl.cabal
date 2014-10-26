@@ -19,13 +19,13 @@ executable mcctl
   main-is:
     mcctl.hs
   other-modules:
+    MCCtl.Args
+    MCCtl.Backend
     MCCtl.Config
     MCCtl.Config.Parser
-    MCCtl.Args
+    MCCtl.DBus
     MCCtl.Frontend
     MCCtl.MiddleEnd
-    MCCtl.Backend
-    MCCtl.DBus
     MCCtl.Paths
   other-extensions:
     OverloadedStrings
