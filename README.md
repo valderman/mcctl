@@ -101,6 +101,14 @@ Instance files are simple YAML files with the following fields:
     than `n` seconds ago. Only meaningful if `restart` is `true`.
     Defaults to 3 seconds.
 
+  * `heap-size`: initial heap size of the Minecraft server Java process, in
+    megabytes.
+    Defaults to 1024 MB.
+
+  * `max-heap-size`: maximum heap size of the Minecraft server Java process, in
+    megabytes.
+    Defaults to whatever `heap-size` is set to.
+
   * `server-properties`: contents for the instance's `server.properties` file.
     No checking is done of the syntax of this property; it's copied verbatim
     into place.

@@ -32,6 +32,12 @@ data Instance = Instance {
     -- | Restart the instance if it crashes?
     restartOnFailure :: !RestartInfo,
 
+    -- | Initial heap size for Java process, in megabytes.
+    initialHeapSize  :: !Int,
+
+    -- | Maximum heap size for Java process, in megabytes.
+    maxHeapSize      :: !Int,
+    
     -- | Instance server.properties file.
     serverProperties :: !(Maybe String)
   } deriving Show

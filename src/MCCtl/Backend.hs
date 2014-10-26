@@ -122,8 +122,11 @@ spawnServerProc cfg = do
   where
     jar = instanceJAR cfg
     dir = instanceDirectory cfg
+    xms = "-Xms" ++ show (initialHeapSize $ instanceConfig cfg) ++ "M"
+    xmx = "-Xmx" ++ show (maxHeapSize $ instanceConfig cfg) ++ "M"
+    opts = ["-jar", jar, "nogui", xms, xmx]
     cp = CreateProcess {
-        cmdspec       = RawCommand "/usr/bin/java" ["-jar", jar, "nogui"],
+        cmdspec       = RawCommand "/usr/bin/java" opts,
         cwd           = Just dir,
         env           = Nothing,
         std_in        = CreatePipe,

@@ -13,10 +13,13 @@ parseInstance bs = do
       Right res -> flip parseMaybe res $ \o -> do
         restart <- o .:? "restart" .!= True
         cooldown <- o .:? "restart-cooldown" .!= 3
+        initheap <- o .:? "heap-size" .!= 1024
         Instance <$> o .:  "server-directory"
                  <*> o .:? "server-jar" .!= "minecraft_server.jar"
                  <*> o .:? "autostart" .!= True
                  <*> pure (restartInfo restart cooldown)
+                 <*> pure initheap
+                 <*> o .:? "max-heap-size" .!= initheap
                  <*> o .:? "server-properties"
       _ -> do
         Nothing
