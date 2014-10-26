@@ -38,44 +38,7 @@ mcctl:
 
     # chown -R mcctl:mcctl /usr/lib/mcctl/default
 
-That's all there is to it.
-
-
-More about usage
-----------------
-
-To start the mcctl daemon manually:
-
-    # mcctl init -c your-config
-
-This will start the daemon as well as all instances with the `autostart`
-property. mcctl will look for instance files in `your-config` if it is a
-directory, or treat it as an instance configuration file if it is a file.
-
-To start a particular instance:
-
-    # mcctl start your-instance
-
-To stop an instance:
-
-    # mcctl stop your-instance
-
-To send a command to the server running in a particular instance:
-
-    # mcctl time set 0 -i your-instance
-
-This will set the in-game time to 0 in `your-instance`.
-
-To view the last `n` items of an instance:
-
-    # mcctl log n your-instance
-
-To shut down the mcctl daemon and all running instances:
-
-    # mcctl shutdown
-
-Any command which allows you to select a particular instance will affect *all*
-applicable instances if no instance name is given.
+For more detailed usage information, consult `mcctl --help`.
 
 
 Instance files
