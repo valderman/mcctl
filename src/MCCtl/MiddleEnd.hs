@@ -135,10 +135,12 @@ start only_auto cfg insts name = modifyMVar insts $ \m -> do
             case minst of
               Just inst
                 | not only_auto || autostart inst -> do
-                  st <- Backend.start insts (Config name cfg inst)
-                  return (M.insert name st m, "")
+                  est <- Backend.start insts (Config name cfg inst)
+                  case est of
+                    Right st -> return (M.insert name st m, "")
+                    Left err -> return (m, err)
                 | otherwise -> do
-                  return (m, "")
+                  return (m, "") -- Only autostart requested, and we don't
               _ -> do
                 return (m, "unable to parse instance file '" ++instfile++ "'")
           else do

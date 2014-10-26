@@ -43,13 +43,17 @@ data State = State {
   }
 
 -- | Start a new server process, complete with log eater and all.
-start :: MVar (M.Map String State) -> Config -> IO State
+start :: MVar (M.Map String State) -> Config -> IO (Either String State)
 start insts cfg = do
     putStrLn $ "Starting instance '" ++ name ++ "'..."
-    st <- spawnServerProc cfg
-    logeater <- forkIO $ discardLogLines st
-    void . forkIO $ monitorServerProc st logeater
-    return st
+    est <- spawnServerProc cfg
+    case est of
+      Right st -> do
+        logeater <- forkIO $ discardLogLines st
+        void . forkIO $ monitorServerProc st logeater
+      Left err -> do
+        putStrLn err
+    return est
   where
     name = instanceName cfg
     monitorServerProc st logeater = do
@@ -69,7 +73,13 @@ start insts cfg = do
                            "' crashed unexpectedly; restarting!"
                 modifyMVar_ insts $ \m -> do
                   newst <- start insts cfg
-                  return $ M.insert name newst m
+                  case newst of
+                    Right newst' -> do
+                      return $ M.insert name newst' m
+                    Left err -> do
+                      putStrLn $ "Unable to restart instance'" ++
+                                 name ++ "': " ++ err
+                      return m
               | otherwise -> do
                 putStrLn $ "Instance '" ++ name ++ "' crashed " ++
                            "unexpectedly, but is crashing too fast to be " ++
@@ -106,28 +116,34 @@ backlog n st = do
       serverDirectory (instanceConfig $ stConfig st) </> "logs" </> "latest.log"
 
 -- | Spawn a Minecraft server process.
-spawnServerProc :: Config -> IO State
+spawnServerProc :: Config -> IO (Either String State)
 spawnServerProc cfg = do
-    createDirectoryIfMissing True dir
-    writeFile (dir </> "eula.txt") "eula=true"
-    case serverProperties $ instanceConfig cfg of
-      Just props -> writeFile (dir </> "server.properties") props
-      _          -> return ()
-    (Just i, Just o, Nothing, ph) <- createProcess cp
-    State <$> pure ph
-          <*> pure i
-          <*> newMVar o
-          <*> pure cfg
-          <*> newEmptyMVar
-          <*> getCurrentTime
+  mjava <- findExecutable java
+  case mjava of
+    Just _ -> do
+      createDirectoryIfMissing True dir
+      writeFile (dir </> "eula.txt") "eula=true"
+      case serverProperties $ instanceConfig cfg of
+        Just props -> writeFile (dir </> "server.properties") props
+        _          -> return ()
+      (Just i, Just o, Nothing, ph) <- createProcess cp
+      Right <$> (State <$> pure ph
+                       <*> pure i
+                       <*> newMVar o
+                       <*> pure cfg
+                       <*> newEmptyMVar
+                       <*> getCurrentTime)
+    _ -> do
+      return $ Left "Java binary not found at /usr/bin/java"
   where
+    java = "/usr/bin/java"
     jar = instanceJAR cfg
     dir = instanceDirectory cfg
     xms = "-Xms" ++ show (initialHeapSize $ instanceConfig cfg) ++ "M"
     xmx = "-Xmx" ++ show (maxHeapSize $ instanceConfig cfg) ++ "M"
     opts = [xms, xmx, "-jar", jar, "nogui"]
     cp = CreateProcess {
-        cmdspec       = RawCommand "/usr/bin/java" opts,
+        cmdspec       = RawCommand java opts,
         cwd           = Just dir,
         env           = Nothing,
         std_in        = CreatePipe,
