@@ -1,16 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | "Middle end" for MCCtl. This is the part that listens for DBus requests
---   and calls out to the backend to actually talk to the server.
+--   handles operations involving instance files. Calls on Backend to talk to
+--   the Minecraft server process.
 module MCCtl.MiddleEnd (startMCCtlServer) where
 import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as M
 import Data.Int
 import System.Posix.Process
-import System.Directory (doesFileExist, doesDirectoryExist)
+import System.Directory
 import Control.Applicative
 import Control.Monad
 import Control.Concurrent
-import Control.Exception
 import DBus.Client
 import MCCtl.Config
 import MCCtl.Config.Parser
@@ -35,7 +35,8 @@ startMCCtlServer cfg = void . forkProcess $ do
             autoMethod dbusIface "command"    $ command insts,
             autoMethod dbusIface "backlog"    $ backlog insts,
             autoMethod dbusIface "configpath" $ getConfigPath cfg,
-            autoMethod dbusIface "create"     $ create cfg
+            autoMethod dbusIface "create"     $ create cfg,
+            autoMethod dbusIface "delete"     $ delete cfg insts
           ]
         void $ start True cfg insts ""
         takeMVar $ closeLock
@@ -62,6 +63,24 @@ create cfg@(GlobalConfig {cfgConfigPath = Directory _}) name srvdir = do
     file = instanceFilePath cfg name
 create _ _ _ = do
   return "can't create instances in single instance mode"
+
+-- | Stop and delete an instance.
+delete :: GlobalConfig -> Instances -> String -> Bool -> IO String
+delete cfg insts name deletedatadir = do
+    minst <- readInstanceFile file
+    case minst of
+      Just inst -> do
+        let srvdir = serverDirectory inst
+        void $ stop insts name
+        direxists <- doesDirectoryExist srvdir
+        when (deletedatadir && direxists) $ do
+          removeDirectoryRecursive srvdir
+        removeFile $ instanceFilePath cfg name
+        return ""
+      _ -> do
+        return "no such instance"
+  where
+    file = instanceFilePath cfg name
 
 -- | Get the instance configuration path for the given instance.
 --   Returns ["ok", path] if a config could be unambiguously chosen, or
@@ -96,23 +115,23 @@ start only_auto cfg insts name = modifyMVar insts $ \m -> do
       Just _ -> do
         return (m, "instance '" ++ name ++ "' is already running")
       _ -> do
-        i <- try (BS.readFile instf) :: IO (Either SomeException BS.ByteString)
-        case i of
-          Right i' -> do
-            case parseInstance i' of
-              Just inst -> do
-                if (not only_auto || autostart inst)
-                  then do
-                    st <- Backend.start insts (Config name cfg inst)
-                    return (M.insert name st m, "")
-                  else do
-                    return (m, "")
+        exists <- doesFileExist instfile
+        if exists
+          then do
+            minst <- readInstanceFile instfile
+            case minst of
+              Just inst
+                | not only_auto || autostart inst -> do
+                  st <- Backend.start insts (Config name cfg inst)
+                  return (M.insert name st m, "")
+                | otherwise -> do
+                  return (m, "")
               _ -> do
-                return (m, "unable to parse instance file '" ++ instf ++ "'")
-          _ -> do
-            return (m, "file does not exist: '" ++ instf ++ "'")
+                return (m, "unable to parse instance file '" ++instfile++ "'")
+          else do
+            return (m, "no such instance")
   where
-    instf = instanceFilePath cfg name
+    instfile = instanceFilePath cfg name
 
 -- | Stop a running instance, or all running instances if name is the empty
 --   string.

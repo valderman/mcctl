@@ -26,6 +26,13 @@ options = [
                "instance file, that is the only instance available to " ++
                "mcctl. If it is a directory, all instance files therein " ++
                "available to mcctl. Defaults to /etc/mcctl.yaml."),
+    Option ""  ["delete-data"]
+               (NoArg $ \c -> c {cfgDeleteDataDir = True})
+               ("Delete data directory as well when removing an instance."),
+    Option ""  ["force"]
+               (NoArg $ \c -> c {cfgForce = True})
+               ("Perform the requested action, even if it is potentially " ++
+                "dangerous."),
     Option "i" ["instance"]
                (ReqArg (\s c -> c {cfgTargetServer = Just s}) "INSTANCE")
                ("Action affects the specified instance. " ++
@@ -88,9 +95,13 @@ helpHeader = init $ unlines [
     " directory.",
   "  DIR defaults to SERVER_WORKING_DIRECTORY/INSTANCE if unset.",
   "",
-  "COMMAND [-c INSTANCE]",
+  "delete INSTANCE [--delete-data]",
+  "  Delete an instance. Leaves the server data directory intact unless ",
+  "  --delete-data is specified.",
+  "",
+  "COMMAND [-i INSTANCE]",
   "  Pass COMMAND to the specified instance's Minecraft server process,",
-  "  or to all running servers if no instance is given."
+  "  or to all running servers if no instance is given.",
   "",
   "Recognized options:",
   ""]

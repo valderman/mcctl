@@ -57,6 +57,12 @@ data GlobalConfig = GlobalConfig {
     -- | Resume editing a broken config when editing.
     cfgResumeEdit      :: !Bool,
 
+    -- | Delete data directory as well when removing an instance?
+    cfgDeleteDataDir   :: !Bool,
+
+    -- | Perform the requested action, even if it is potentially dangerous?
+    cfgForce           :: !Bool,
+
     -- | Server directory for newly created instances.
     cfgServerDirectory :: !(Maybe FilePath)
   } deriving Show
@@ -74,6 +80,8 @@ instance Default GlobalConfig where
       cfgTargetServer    = Nothing,
       cfgPrintHelp       = False,
       cfgResumeEdit      = False,
+      cfgDeleteDataDir   = False,
+      cfgForce           = False,
       cfgServerDirectory = Nothing
     }
 

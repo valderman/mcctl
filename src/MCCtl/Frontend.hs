@@ -20,6 +20,22 @@ runAndPrint cmd args = do
     [Just s] -> printMessage s
     _        -> error "Impossibru!"
 
+-- | Delete an instance and (optionally) all of its associated data.
+deleteInstance :: GlobalConfig -> String -> IO ()
+deleteInstance cfg name = do
+  case cfgForce cfg of
+    True -> runAndPrint "delete" [toVariant name, toVariant deletedata]
+    _    -> putStrLn dangerous
+  where
+    deletedata = cfgDeleteDataDir cfg
+    dangerous = concat [
+      "WARNING: your are about to PERMANENTLY delete the instance '", name,
+      "'", andData, "!\n",
+      "If you are really sure about this, run 'mcctl delete ", name,
+      " --force'."]
+    andData | deletedata = " and all of its server data"
+            | otherwise  = ""
+
 -- | Create a new instance by the given name. Prints an error message if mcctl
 --   is configured to run in single instance mode.
 createInstance :: String -> FilePath -> IO ()

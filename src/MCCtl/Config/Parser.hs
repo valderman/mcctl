@@ -1,12 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Parse instances from a YAML file.
-module MCCtl.Config.Parser where
+module MCCtl.Config.Parser (readInstanceFile, checkInstanceFile) where
 import Control.Applicative
 import System.Directory
 import qualified Data.ByteString as BS
 import Data.Yaml
 import Data.Maybe (isJust)
 import MCCtl.Config
+
+-- | Read an instance configuration from disk.
+readInstanceFile :: FilePath -> IO (Maybe Instance)
+readInstanceFile file = do
+  exists <- doesFileExist file
+  if exists
+    then parseInstance <$> BS.readFile file
+    else return Nothing
+
+-- | Does the given instance exist and have a valid configuration?
+checkInstanceFile :: FilePath -> IO Bool
+checkInstanceFile = fmap isJust . readInstanceFile
 
 -- | Parse an instance YAML file.
 parseInstance :: BS.ByteString -> Maybe Instance
@@ -29,15 +41,3 @@ parseInstance bs = do
     restartInfo :: Bool -> Int -> RestartInfo
     restartInfo True cooldown = Restart (fromIntegral cooldown)
     restartInfo False _       = DontRestart
-
-
--- | Does the given instance exist and have a valid configuration?
-checkInstanceFile :: FilePath -> IO Bool
-checkInstanceFile file = do
-  exists <- doesFileExist file
-  case exists of
-    False -> do
-      return False
-    True -> do
-      contents <- BS.readFile file
-      return $ isJust $ parseInstance contents
