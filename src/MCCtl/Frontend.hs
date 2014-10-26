@@ -109,6 +109,9 @@ getServerBacklog :: String -> Int32 -> IO ()
 getServerBacklog name n = runAndPrint "backlog" [toVariant name, toVariant n]
 
 printMessage :: String -> IO ()
-printMessage "" = return ()
-printMessage s  = putStrLn $ strip s
-  where strip = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+printMessage s =
+  case strip s of
+    "" -> return ()
+    s' -> putStrLn s'
+  where
+    strip = reverse . dropWhile isSpace . reverse . dropWhile isSpace
