@@ -52,7 +52,10 @@ data GlobalConfig = GlobalConfig {
     cfgTargetServer :: !String,
 
     -- | Print a help message instead of doing anything else?
-    cfgPrintHelp    :: !Bool
+    cfgPrintHelp    :: !Bool,
+
+    -- | Resume editing a broken config when editing.
+    cfgResumeEdit   :: !Bool
   } deriving Show
 
 -- | A complete instance configuration.
@@ -66,7 +69,8 @@ instance Default GlobalConfig where
   def = GlobalConfig {
       cfgConfigPath   = File "/etc/mcctl.yaml",
       cfgTargetServer = "",
-      cfgPrintHelp    = False
+      cfgPrintHelp    = False,
+      cfgResumeEdit   = False
     }
 
 -- | Instance configuration path.

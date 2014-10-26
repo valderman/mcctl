@@ -23,14 +23,14 @@ instanceJAR :: Config -> FilePath
 instanceJAR cfg = serverJAR $ instanceConfig cfg
 
 -- | Get all instances for the given global config.
-getAllInstances :: GlobalConfig -> IO [FilePath]
+getAllInstances :: GlobalConfig -> IO [String]
 getAllInstances cfg = do
     fs <- case cfgConfigPath cfg of
             Directory dir -> getDirectoryContents dir
             File file     -> return [file]
-    return $ filter isInst $ nub' $ map (dropExtension . takeFileName) fs
+    return $ nub' $ map dropExtension $ filter isInst $ map takeFileName fs
   where
     nub' = map head . group . sort
     isInst ""      = False
     isInst ('.':_) = False
-    isInst _       = True
+    isInst f       = takeExtension f == ".yaml"

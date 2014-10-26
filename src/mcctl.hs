@@ -24,6 +24,8 @@ runCmd cfg args = do
       ["stop", s]    -> stopServer s
       ["restart"]    -> restartServer server
       ["restart", s] -> restartServer s
+      ["edit"]       -> editConfig cfg server
+      ["edit", s]    -> editConfig cfg s
       ["log", n]     -> getServerBacklog server $ read n
       ["log", n, s]  -> getServerBacklog s $ read n
       cmd            -> serverCommand server $ unwords cmd

@@ -2,8 +2,10 @@
 -- | Parse instances from a YAML file.
 module MCCtl.Config.Parser where
 import Control.Applicative
+import System.Directory
 import qualified Data.ByteString as BS
 import Data.Yaml
+import Data.Maybe (isJust)
 import MCCtl.Config
 
 -- | Parse an instance YAML file.
@@ -27,3 +29,15 @@ parseInstance bs = do
     restartInfo :: Bool -> Int -> RestartInfo
     restartInfo True cooldown = Restart (fromIntegral cooldown)
     restartInfo False _       = DontRestart
+
+
+-- | Does the given instance exist and have a valid configuration?
+checkInstanceFile :: FilePath -> IO Bool
+checkInstanceFile file = do
+  exists <- doesFileExist file
+  case exists of
+    False -> do
+      return False
+    True -> do
+      contents <- BS.readFile file
+      return $ isJust $ parseInstance contents

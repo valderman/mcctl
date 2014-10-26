@@ -6,6 +6,7 @@ import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as M
 import Data.Int
 import System.Posix.Process
+import System.Directory (doesFileExist)
 import Control.Applicative
 import Control.Monad
 import Control.Concurrent
@@ -28,11 +29,12 @@ startMCCtlServer cfg = void . forkProcess $ do
         insts <- newMVar M.empty
         closeLock <- newEmptyMVar
         export client dbusObj [
-            autoMethod dbusIface "shutdown" $ shutdown closeLock insts client,
-            autoMethod dbusIface "start"    $ start False cfg insts,
-            autoMethod dbusIface "stop"     $ stop insts,
-            autoMethod dbusIface "command"  $ command insts,
-            autoMethod dbusIface "backlog"  $ backlog insts
+            autoMethod dbusIface "shutdown"   $ shutdown closeLock insts client,
+            autoMethod dbusIface "start"      $ start False cfg insts,
+            autoMethod dbusIface "stop"       $ stop insts,
+            autoMethod dbusIface "command"    $ command insts,
+            autoMethod dbusIface "backlog"    $ backlog insts,
+            autoMethod dbusIface "configpath" $ getConfigPath cfg
           ]
         void $ start True cfg insts ""
         takeMVar $ closeLock
@@ -45,14 +47,31 @@ startMCCtlServer cfg = void . forkProcess $ do
       void $ releaseName client dbusBus
       putMVar done ()
 
+-- | Get the instance configuration path for the given instance.
+--   Returns ["ok", path] if a config could be unambiguously chosen, or
+--   [error message] if it couldn't.
+getConfigPath :: GlobalConfig -> String -> IO [String]
+getConfigPath cfg "" = do
+  insts <- getAllInstances cfg
+  case insts of
+    [inst] -> return ["ok", instanceFilePath cfg inst]
+    []     -> return ["no available instances"]
+    is     -> return ["command ambiguous; choose an instance: " ++ show is]
+getConfigPath cfg name = do
+    isfile <- doesFileExist file
+    if isfile
+      then return ["ok", file]
+      else return ["instance '" ++ name ++ "' does not exist"]
+  where
+    file = instanceFilePath cfg name
+
 -- | Start a new instance, or all eligible instances if name is the empty
 --   string.
-start :: Bool                      -- ^ Only start autostart instances.
-      -> GlobalConfig              -- ^ Global config.
-      -> Instances -- ^ All currently running instances.
-      -> String                    -- ^ Name of instance to start.
-      -> IO String                 -- ^ Any output resulting from the attempted
-                                   --   start.
+start :: Bool         -- ^ Only start autostart instances.
+      -> GlobalConfig -- ^ Global config.
+      -> Instances    -- ^ All currently running instances.
+      -> String       -- ^ Name of instance to start.
+      -> IO String    -- ^ Any output resulting from the attempted start.
 start only_auto cfg insts "" = do
   is <- getAllInstances cfg
   unlines <$> mapM (start only_auto cfg insts) is

@@ -30,6 +30,11 @@ options = [
                (ReqArg (\s c -> c {cfgTargetServer = s}) "INSTANCE")
                ("Action affects the specified instance. " ++
                 "Affects all servers if unset."),
+    Option "r" ["resume"]
+               (NoArg $ \c -> c {cfgResumeEdit = True})
+               ("Resume editing an old, broken config instead of starting " ++
+                "from the last known good configuration. " ++
+                "Has no effect if there is no broken config to resume."),
     Option "h?" ["help"]
                 (NoArg $ \c -> c {cfgPrintHelp = True})
                 "Print this help message."
