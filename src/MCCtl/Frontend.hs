@@ -25,6 +25,10 @@ runAndPrint cmd args = do
 listInstances :: IO ()
 listInstances = runAndPrint "list" []
 
+-- | Back up a running instance.
+backupInstance :: String -> IO ()
+backupInstance name = runAndPrint "backup" [toVariant name]
+
 -- | Delete an instance and (optionally) all of its associated data.
 deleteInstance :: GlobalConfig -> String -> IO ()
 deleteInstance cfg name = do

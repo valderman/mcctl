@@ -41,6 +41,7 @@ executable mcctl
     directory >= 1.2,
     containers >= 0.5,
     time >= 1.4,
+    old-locale >= 1.0,
     utf8-string >= 0.3
   ghc-options:
     -Wall -Werror -O2 -threaded

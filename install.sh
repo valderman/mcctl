@@ -11,6 +11,7 @@ sudo adduser --system mcctl --home /usr/lib/mcctl --ingroup mcctl
 
 # Install files
 sudo mkdir -p /usr/lib/mcctl/instances
+sudo mkdir -p /usr/lib/mcctl/backups
 sudo cp dist/build/mcctl/mcctl /usr/bin/
 sudo cp cc.ekblad.mcctl.conf   /etc/dbus-1/system.d/
 sudo cp mcctl.service          /lib/systemd/system/

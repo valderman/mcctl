@@ -1,17 +1,18 @@
 -- | MCCtl backend; this is the part that actually talks to the Minecraft
 --   server.
 module MCCtl.Backend (
-    State, start, stop, backlog, command
+    State, start, stop, backlog, command, backup
   ) where
 import qualified Data.Map.Strict as M
 import qualified Data.ByteString as BS
 import Data.ByteString.UTF8
-import Data.Time.Clock
+import Data.Time
 import Data.Int
 import System.IO
 import System.Process
 import System.FilePath
 import System.Directory
+import System.Locale (defaultTimeLocale)
 import System.Exit
 import Control.Applicative
 import Control.Monad
@@ -113,9 +114,57 @@ backlog n st = do
     logfile =
       serverDirectory (instanceConfig $ stConfig st) </> "logs" </> "latest.log"
 
+-- | Back up an instance to its backup directory.
+backup :: State -> IO String
+backup st = do
+    now <- showTime <$> getCurrentTime
+    case backupDirectory $ instanceConfig $ stConfig st of
+      Just backupdir -> do
+        isdir <- doesDirectoryExist backupdir
+        case isdir of
+          True -> do
+            let file = backupdir </> now <.> "tar.bz2"
+                parentdir = datadir </> ".."
+                dir = takeBaseName datadir
+                taropts = ["-C", parentdir, "-cjf", file, dir]
+            writeCommand st "save-off"
+            writeCommandSync st "save-all" $ \ln ->
+              dropWhile (/=']') ln == "] [Server thread/INFO]: Saved the world"
+
+            -- MC reports "saved the world" slightly before it's done saving
+            -- for some bizarre reason, so we have to wait a little longer.
+            threadDelay 1000000
+            void $ readProcess "/bin/tar" taropts ""
+
+            writeCommand st "save-on"
+            return $ "instance '" ++ name ++ "' backed up to '" ++ file ++ "'"
+          _ -> do
+            return $ "backup directory '" ++ backupdir ++ "' does not exist"
+      Nothing -> do
+        return $ "no backup directory configured for instance '"++name++"'"
+  where
+    showTime = formatTime defaultTimeLocale timespec
+    timespec = concat [name, "_%Y-%m-%d_%H%M%S"]
+    datadir = serverDirectory $ instanceConfig $ stConfig st
+    name = instanceName $ stConfig st
+
 -- | Write a command to the instance server.
 writeCommand :: State -> String -> IO ()
 writeCommand st cmd = hPutStrLn (stInHdl st) cmd >> hFlush (stInHdl st)
+
+-- | Write a command to the instance server, then wait until a line satisfying
+--   the given predicate appears in the log before returning.
+--   Beware; the instance will not be able to accept any other commands until
+--   this function returns.
+writeCommandSync :: State -> String -> (String -> Bool) -> IO ()
+writeCommandSync st cmd awaited = withMVar (stOutHdl st) $ \h -> do
+    discardLines h
+    writeCommand st cmd
+    waitForPredOn h
+  where
+    waitForPredOn h = do
+      ln <- hGetLine h
+      unless (awaited ln) $ waitForPredOn h
 
 -- | Spawn a Minecraft server process.
 spawnServerProc :: Config -> IO (Either String State)

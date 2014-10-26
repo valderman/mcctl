@@ -55,7 +55,8 @@ startMCCtlServer cfg = do
               autoMethod dbusIface "configpath" $ getConfigPath cfg,
               autoMethod dbusIface "create"     $ create cfg,
               autoMethod dbusIface "delete"     $ delete cfg insts,
-              autoMethod dbusIface "list"       $ listInstances insts cfg
+              autoMethod dbusIface "list"       $ listInstances insts cfg,
+              autoMethod dbusIface "backup"     $ backup insts
             ]
           void $ start True cfg insts ""
           takeMVar $ closeLock
@@ -157,6 +158,17 @@ start only_auto cfg insts name = modifyMVar insts $ \m -> do
             return (m, "no such instance")
   where
     instfile = instanceFilePath cfg name
+
+-- | Back up a running instance, or all running instances if name is the empty
+--   string.
+backup :: Instances -> String -> IO String
+backup insts "" = withMVar insts $ \m -> do
+  res <- mapM (Backend.backup . snd) $ M.toList m
+  return $ unlines res
+backup insts name = withMVar insts $ \m -> do
+  case M.lookup name m of
+    Just st -> Backend.backup st
+    _       -> return "no such instance running"
 
 -- | Stop a running instance, or all running instances if name is the empty
 --   string.
