@@ -3,7 +3,6 @@
 --   handles operations involving instance files. Calls on Backend to talk to
 --   the Minecraft server process.
 module MCCtl.MiddleEnd (startMCCtlServer) where
-import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as M
 import Data.Int
 import System.Posix.Process
@@ -162,14 +161,14 @@ stop insts name = modifyMVar insts $ \m -> do
       return (m, "no such instance running")
 
 -- | Sent a command to a instance, or all if name is the empty string.
-command :: Instances -> String -> String -> IO [BS.ByteString]
+command :: Instances -> String -> String -> IO String
 command insts "" cmd = withMVar insts $ \m -> do
   reps <- mapM (Backend.command cmd . snd) $ M.toList m
-  return $ concat reps
+  return $ unlines reps
 command insts name cmd = withMVar insts $ \m -> do
   case M.lookup name m of
     Just st -> Backend.command cmd st
-    _       -> return ["no such instance running"]
+    _       -> return "no such instance running"
 
 -- | Get the last n lines from the log of the given instance, or all instances
 --   if name is the empty string.

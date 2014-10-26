@@ -3,8 +3,9 @@
 module MCCtl.Backend (
     State, start, stop, backlog, command
   ) where
-import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as M
+import qualified Data.ByteString as BS
+import Data.ByteString.UTF8
 import Data.Time.Clock
 import Data.Int
 import System.IO
@@ -86,7 +87,7 @@ stop st = do
   takeMVar $ stDoneLock st
 
 -- | Perform a command, wait for 100ms, then examine the log for a result.
-command :: String -> State -> IO [BS.ByteString]
+command :: String -> State -> IO String
 command cmd st = do
   withMVar (stOutHdl st) $ \h -> do
     discardLines h
@@ -94,7 +95,7 @@ command cmd st = do
     hFlush $ stInHdl st
     threadDelay 100000
     ls <- readLines h
-    return ls
+    return $ unlines $ map toString ls
 
 -- | Get the n latest entries in the log file.
 backlog :: Int32 -> State -> IO String

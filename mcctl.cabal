@@ -40,7 +40,8 @@ executable mcctl
     yaml >= 0.8,
     directory >= 1.2,
     containers >= 0.5,
-    time >= 1.4
+    time >= 1.4,
+    utf8-string >= 0.3
   ghc-options:
     -Wall -Werror -O2 -threaded
   default-language:
