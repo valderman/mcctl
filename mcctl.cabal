@@ -44,5 +44,7 @@ executable mcctl
     utf8-string >= 0.3
   ghc-options:
     -Wall -Werror -O2 -threaded
+  ld-options:
+    -z relro
   default-language:
     Haskell2010
