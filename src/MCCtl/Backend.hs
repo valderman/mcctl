@@ -92,8 +92,7 @@ start insts cfg = do
 stop :: State -> IO ()
 stop st = do
   putStrLn $ "Stopping instance '" ++ (instanceName $ stConfig st)
-  hPutStrLn (stInHdl st) "stop"
-  hFlush $ stInHdl st
+  writeCommand st "stop"
   takeMVar $ stDoneLock st
 
 -- | Perform a command, wait for 100ms, then examine the log for a result.
@@ -101,8 +100,7 @@ command :: String -> State -> IO String
 command cmd st = do
   withMVar (stOutHdl st) $ \h -> do
     discardLines h
-    hPutStrLn (stInHdl st) cmd
-    hFlush $ stInHdl st
+    writeCommand st cmd
     threadDelay 100000
     ls <- readLines h
     return $ unlines $ map toString ls
@@ -114,6 +112,10 @@ backlog n st = do
   where
     logfile =
       serverDirectory (instanceConfig $ stConfig st) </> "logs" </> "latest.log"
+
+-- | Write a command to the instance server.
+writeCommand :: State -> String -> IO ()
+writeCommand st cmd = hPutStrLn (stInHdl st) cmd >> hFlush (stInHdl st)
 
 -- | Spawn a Minecraft server process.
 spawnServerProc :: Config -> IO (Either String State)
