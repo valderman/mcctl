@@ -30,6 +30,7 @@ runCmd cfg args = do
       ["create", s]  -> createInstance s srvdir
       ["delete"]     -> deleteInstance cfg server
       ["delete", s]  -> deleteInstance cfg s
+      ["list"]       -> listInstances
       ["log", n]     -> getServerBacklog server $ read n
       ["log", n, s]  -> getServerBacklog s $ read n
       cmd            -> serverCommand server $ unwords cmd

@@ -4,7 +4,8 @@
 --   the Minecraft server process.
 module MCCtl.MiddleEnd (startMCCtlServer) where
 import qualified Data.Map.Strict as M
-import Data.Int
+import Data.Int (Int32)
+import Data.Maybe (isJust)
 import System.Posix.Process
 import System.Directory
 import Control.Applicative
@@ -53,7 +54,8 @@ startMCCtlServer cfg = do
               autoMethod dbusIface "backlog"    $ backlog insts,
               autoMethod dbusIface "configpath" $ getConfigPath cfg,
               autoMethod dbusIface "create"     $ create cfg,
-              autoMethod dbusIface "delete"     $ delete cfg insts
+              autoMethod dbusIface "delete"     $ delete cfg insts,
+              autoMethod dbusIface "list"       $ listInstances insts cfg
             ]
           void $ start True cfg insts ""
           takeMVar $ closeLock
@@ -61,6 +63,14 @@ startMCCtlServer cfg = do
         _ -> do
           return ()
 
+-- | List all instances.
+listInstances :: Instances -> GlobalConfig -> IO String
+listInstances insts cfg = withMVar insts $ \m -> do
+    is <- getAllInstances cfg
+    return . unlines $ map (\n -> running n $ isJust (M.lookup n m)) is
+  where
+    running n True  = n ++ " [running]"
+    running n False = n
 
 -- | Create a new instance by the given name, unless we're in single instance
 --   mode or if the named instance already exists.

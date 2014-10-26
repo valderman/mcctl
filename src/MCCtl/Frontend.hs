@@ -21,6 +21,10 @@ runAndPrint cmd args = do
     [Just s] -> printMessage s
     _        -> error "Impossibru!"
 
+-- | List all available instances.
+listInstances :: IO ()
+listInstances = runAndPrint "list" []
+
 -- | Delete an instance and (optionally) all of its associated data.
 deleteInstance :: GlobalConfig -> String -> IO ()
 deleteInstance cfg name = do
