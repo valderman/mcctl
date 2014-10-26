@@ -20,7 +20,7 @@ parseOpts args =
 -- | All our command line options.
 options :: [OptDescr (GlobalConfig -> GlobalConfig)]
 options = [
-    Option "c" ["config-dir"]
+    Option "c" ["config"]
                (ReqArg setCfgPath "CONFIG")
                ("Read instance configuration from CONFIG. If CONFIG is an " ++
                "instance file, that is the only instance available to " ++
