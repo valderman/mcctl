@@ -50,6 +50,10 @@ Instance files are simple YAML files with the following fields:
     logs and all other Minecraft server data.
     This field is mandatory.
 
+  * `backup-directory`: this instance's backup directory; `mcctl backup` will
+    create its backups here, if configured.
+    Not configured by default.
+
   * `server-jar`: path to Minecraft server JAR file, either absolute or relative
     to `serverDirectory`.
     Defaults to `minecraft_server.1.8.jar`
