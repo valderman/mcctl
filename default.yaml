@@ -1,11 +1,11 @@
-server-directory:  default
+server-directory:  worlddata/default
 server-jar:        ../minecraft_server.1.8.jar
 autostart:         true
 restart:           true
 restart-cooldown:  3
 heap-size:         1024
 max-heap-size:     1024
-backup-directory:  backups
+backup-directory:  backups/default
 server-properties: |
   generator-settings=
   op-permission-level=4

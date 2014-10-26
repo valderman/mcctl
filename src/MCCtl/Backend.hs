@@ -120,26 +120,23 @@ backup st = do
     now <- showTime <$> getCurrentTime
     case backupDirectory $ instanceConfig $ stConfig st of
       Just backupdir -> do
-        isdir <- doesDirectoryExist backupdir
-        case isdir of
-          True -> do
-            let file = backupdir </> now <.> "tar.bz2"
-                parentdir = datadir </> ".."
-                dir = takeBaseName datadir
-                taropts = ["-C", parentdir, "-cjf", file, dir]
-            writeCommand st "save-off"
-            writeCommandSync st "save-all" $ \ln ->
-              dropWhile (/=']') ln == "] [Server thread/INFO]: Saved the world"
+        let file = backupdir </> now <.> "tar.bz2"
+            parentdir = datadir </> ".."
+            dir = takeBaseName datadir
+            taropts = ["-C", parentdir, "-cjf", file, dir]
 
-            -- MC reports "saved the world" slightly before it's done saving
-            -- for some bizarre reason, so we have to wait a little longer.
-            threadDelay 1000000
-            void $ readProcess "/bin/tar" taropts ""
+        writeCommand st "save-off"
+        writeCommandSync st "save-all" $ \ln ->
+          dropWhile (/=']') ln == "] [Server thread/INFO]: Saved the world"
 
-            writeCommand st "save-on"
-            return $ "instance '" ++ name ++ "' backed up to '" ++ file ++ "'"
-          _ -> do
-            return $ "backup directory '" ++ backupdir ++ "' does not exist"
+        -- MC reports "saved the world" slightly before it's done saving
+        -- for some bizarre reason, so we have to wait a little longer.
+        threadDelay 1000000
+        createDirectoryIfMissing True backupdir
+        void $ readProcess "/bin/tar" taropts ""
+
+        writeCommand st "save-on"
+        return $ "instance '" ++ name ++ "' backed up to '" ++ file ++ "'"
       Nothing -> do
         return $ "no backup directory configured for instance '"++name++"'"
   where

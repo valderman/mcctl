@@ -105,7 +105,8 @@ data RestartInfo
 -- | Default contents of newly created instances.
 defaultConfig :: FilePath -> String
 defaultConfig srvdir = unlines [
-  "server-directory:  " ++ srvdir,
+  "server-directory:  worlddata/" ++ srvdir,
+  "backup-directory:  backups/" ++ srvdir,
   "server-jar:        ../minecraft_server.1.8.jar",
   "autostart:         false",
   "restart:           true",

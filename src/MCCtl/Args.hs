@@ -93,7 +93,7 @@ helpHeader = init $ unlines [
   "create INSTANCE [-s DIR]",
   "  Create a new instance called INSTANCE, with DIR for its server data" ++
     " directory.",
-  "  DIR defaults to SERVER_WORKING_DIRECTORY/INSTANCE if unset.",
+  "  DIR defaults to SERVER_WORKING_DIRECTORY/worlddata/INSTANCE if unset.",
   "",
   "delete INSTANCE [--delete-data]",
   "  Delete an instance. Leaves the server data directory intact unless ",

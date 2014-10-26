@@ -5,3 +5,4 @@ usr/share/doc/mcctl
 usr/lib/mcctl
 usr/lib/mcctl/instances
 usr/lib/mcctl/backups
+usr/lib/mcctl/worlddata
