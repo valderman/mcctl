@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module MCCtl.Frontend where
-import Data.Int
+import Data.Int (Int32)
+import Data.Char (isSpace)
 import Control.Applicative
 import Control.Monad
 import System.Process
@@ -101,4 +102,5 @@ getServerBacklog name n = runAndPrint "backlog" [toVariant name, toVariant n]
 
 printMessage :: String -> IO ()
 printMessage "" = return ()
-printMessage s  = putStrLn s
+printMessage s  = putStrLn $ strip s
+  where strip = reverse . dropWhile isSpace . reverse . dropWhile isSpace
