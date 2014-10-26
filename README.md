@@ -6,7 +6,7 @@ A program to control Minecraft servers in a robust and simple way.
 Dependencies
 ------------
 
-mcctl depends on wget, systemd and any recent version of Java.
+mcctl depends on wget, bzip2, systemd and any recent version of Java.
 
 
 Installation
