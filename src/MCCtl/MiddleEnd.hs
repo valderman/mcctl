@@ -21,33 +21,47 @@ type Instances = MVar (M.Map String Backend.State)
 
 -- | Start the MCCtl server, as well as any autostart instances.
 startMCCtlServer :: GlobalConfig -> IO ()
-startMCCtlServer cfg = void . forkProcess $ do
-    client <- connectSystem
-    namerep <- requestName client dbusBus [nameDoNotQueue]
-    case namerep of
-      NamePrimaryOwner -> do
-        insts <- newMVar M.empty
-        closeLock <- newEmptyMVar
-        export client dbusObj [
-            autoMethod dbusIface "shutdown"   $ shutdown closeLock insts client,
-            autoMethod dbusIface "start"      $ start False cfg insts,
-            autoMethod dbusIface "stop"       $ stop insts,
-            autoMethod dbusIface "command"    $ command insts,
-            autoMethod dbusIface "backlog"    $ backlog insts,
-            autoMethod dbusIface "configpath" $ getConfigPath cfg,
-            autoMethod dbusIface "create"     $ create cfg,
-            autoMethod dbusIface "delete"     $ delete cfg insts
-          ]
-        void $ start True cfg insts ""
-        takeMVar $ closeLock
-        disconnect client
-      _ -> do
-        return ()
+startMCCtlServer cfg = do
+  case cfgConfigPath cfg of
+    Directory d -> do
+      isdir <- doesDirectoryExist d
+      if isdir
+        then forkServer
+        else putStrLn $ "instance directory '" ++ d ++ "' does not exist"
+    File f -> do
+      isok <- checkInstanceFile f
+      if isok
+        then forkServer
+        else putStrLn $ "file '" ++ f ++ "' is not a valid instance file"
   where
     shutdown done insts client = do
       void $ stop insts ""
       void $ releaseName client dbusBus
       putMVar done ()
+
+    forkServer = void . forkProcess $ do
+      c <- connectSystem
+      namerep <- requestName c dbusBus [nameDoNotQueue]
+      case namerep of
+        NamePrimaryOwner -> do
+          insts <- newMVar M.empty
+          closeLock <- newEmptyMVar
+          export c dbusObj [
+              autoMethod dbusIface "shutdown"   $ shutdown closeLock insts c,
+              autoMethod dbusIface "start"      $ start False cfg insts,
+              autoMethod dbusIface "stop"       $ stop insts,
+              autoMethod dbusIface "command"    $ command insts,
+              autoMethod dbusIface "backlog"    $ backlog insts,
+              autoMethod dbusIface "configpath" $ getConfigPath cfg,
+              autoMethod dbusIface "create"     $ create cfg,
+              autoMethod dbusIface "delete"     $ delete cfg insts
+            ]
+          void $ start True cfg insts ""
+          takeMVar $ closeLock
+          disconnect c
+        _ -> do
+          return ()
+
 
 -- | Create a new instance by the given name, unless we're in single instance
 --   mode or if the named instance already exists.
