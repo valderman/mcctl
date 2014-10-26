@@ -38,7 +38,7 @@ options = [
     Option ""  ["server-dir"]
                (ReqArg (\s c -> c {cfgServerDirectory = Just s}) "DIR")
                ("Use this server-directory when creating a new instance. " ++
-                "Defaults to $SERVER_WORKING_DIRECTORY/$INSTANCE_NAME."),
+                "Defaults to SERVER_WORKING_DIRECTORY/INSTANCE_NAME."),
     Option "h?" ["help"]
                 (NoArg $ \c -> c {cfgPrintHelp = True})
                 "Print this help message."
@@ -61,15 +61,39 @@ helpHeader :: String
 helpHeader = init $ unlines [
   usageLine,
   "",
-  "init: initialize mcctl and start any autostarted instances.",
-  "shutdown: gracefully shut down all running instances and exit mcctl.",
-  "start [INSTANCE]: start INSTANCE, or all instances if none is given.",
-  "stop [INSTANCE]: stop INSTANCE, or all running instances if none is given.",
-  "log N [INSTANCE]: print the last N lines from INSTANCE's log file.",
-  "COMMAND [-c INSTANCE]: pass the given string to the given instance's",
-  "Minecraft server process, or to all running servers if no instance is given.",
+  "Recognized commands:",
   "",
-  "A summary of the available options is given below."]
+  "init",
+  "  Initialize mcctl and start any autostarted instances.",
+  "",
+  "shutdown",
+  "  Gracefully shut down all running instances and exit mcctl.",
+  "",
+  "start [INSTANCE]",
+  "  Start INSTANCE, or all instances if none is given.",
+  "",
+  "stop [INSTANCE]",
+  "  Stop INSTANCE, or all running instances if none is given.",
+  "",
+  "log N [INSTANCE]",
+  "  Print the last N lines from INSTANCE's log file.",
+  "",
+  "edit [INSTANCE]",
+  "  Edit the given instance's configuration file using the editor found in",
+  "  $EDITOR, or 'nano' if $EDITOR is unset.",
+  "  INSTANCE can be omitted if there is only a single instance.",
+  "",
+  "create INSTANCE [-s DIR]",
+  "  Create a new instance called INSTANCE, with DIR for its server data" ++
+    " directory.",
+  "  DIR defaults to SERVER_WORKING_DIRECTORY/INSTANCE if unset.",
+  "",
+  "COMMAND [-c INSTANCE]",
+  "  Pass COMMAND to the specified instance's Minecraft server process,",
+  "  or to all running servers if no instance is given."
+  "",
+  "Recognized options:",
+  ""]
 
 -- | Produce a help message from a header and a description of the available
 --   options.
