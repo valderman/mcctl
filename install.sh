@@ -17,6 +17,8 @@ sudo cp dist/build/mcctl/mcctl /usr/bin/
 sudo cp cc.ekblad.mcctl.conf   /etc/dbus-1/system.d/
 sudo cp mcctl.service          /lib/systemd/system/
 sudo cp default.yaml           /usr/lib/mcctl/instances/
+sudo cp mcctl.1                /usr/share/man/man1/
+sudo mandb
 sudo chown -R mcctl:mcctl /usr/lib/mcctl
 
 # Start mcctl on system boot
