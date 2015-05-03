@@ -1,0 +1,116 @@
+.TH MCCtl 1
+
+.SH NAME
+mcctl \- control and configure mcctl wrapped Minecraft servers
+
+.SH SYNOPSIS
+.B mcctl
+ingame_command [arguments] |
+.B mcctl
+command [arguments]
+
+.SH DESCRIPTION
+.B mcctl
+is a control interface towards the mcctl service. Minecraft servers may be
+given commands directly, or using some external commands such as making the
+server
+.B start
+or
+.B stop.
+
+
+.SH BUILT-IN COMMANDS
+.TP
+.BR init
+Starts MCCtl.
+
+.TP
+.BR shutdown
+Stops MCCtl.
+
+.TP
+.BR list
+Lists started Minecraft instances.
+
+.TP
+.BR start
+Starts a server, either the default Minecraft server or
+a given server instance.
+.IP
+.R usage:
+mcctl
+.B start
+[server instance identifier]
+
+.TP
+.BR stop  [s]
+Stops a server, either the default Minecraft server or a given server instance. 
+.IP
+.R usage:
+mcctl
+.B stop
+[server instance identifier]
+
+.TP
+.BR restart
+Restarts a server, either the default Minecraft server or
+a given server instance.
+.IP
+.R usage:
+mcctl
+.B restart
+[server instance identifier]
+
+.TP
+.BR edit
+Edits the config for the either default Minecraft server or a given
+server instance.
+.IP
+.R usage:
+mcctl
+.B edit
+[server instance identifier]
+
+.TP
+.BR create
+Creates a new server instance, either as the default instance or an instance
+bound to a given identifier.
+.IP
+.R usage:
+mcctl
+.B create
+[server instance identifier]
+
+.TP
+.BR delete
+Deletes the default Minecraft server or a server instance identified by \fBs\fR.
+.IP
+.R usage:
+mcctl
+.B delete
+[server instance identifier]
+[s]
+
+.TP
+.BR backup
+Backups the world for either the default Minecraft server instance
+or a given server instance.
+.IP
+.R usage:
+mcctl
+.B backup
+[server instance identifier]
+
+.TP
+.BR log
+Gets the last n log messages for either the default Minecraft server instance
+or a given server instance.
+.IP
+.R usage:
+mcctl
+.B log
+lines [server instance identifier]
+.IP
+\fBlines\fR - number of lines to print
+
+
