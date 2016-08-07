@@ -63,7 +63,7 @@ editConfig cfg name = do
       _                   -> error "Impossibru!"
   where
     edit file = do
-      bin <- maybe "/usr/bin/nano" id <$> lookupEnv "EDITOR"
+      bin <- maybe "nano" id <$> lookupEnv "EDITOR"
       meditor <- findExecutable bin
       case meditor of
         Just editor -> do
