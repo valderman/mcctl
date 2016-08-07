@@ -28,17 +28,25 @@ listInstances = runAndPrint "list" []
 -- | Print the running/not running status of the given instance.
 instanceStatus :: String -> IO ()
 instanceStatus inst = do
+  mrunning <- getInstanceStatus inst
+  case mrunning of
+    Just running -> do
+      when (not running) $ putStr "not "
+      putStrLn "running"
+    _ -> do
+      putStrLn "no such instance"
+
+getInstanceStatus :: String -> IO (Maybe Bool)
+getInstanceStatus inst = do
   ret <- dbusCall "list" []
   case fromVariant <$> methodReturnBody ret of
     [Just s]
-      | inst `isPrefixOf` s -> putStrLn (running s)
-      | otherwise           -> putStrLn "no such instance"
+      | inst `isPrefixOf` s -> return $ Just (running s)
+      | otherwise           -> return Nothing
     _        -> error "Impossibru!"
   where
-    running :: String -> String
-    running s
-      | "[running]" `isSuffixOf` (head $ lines s) = "running"
-      | otherwise                                 = "not running"
+    running :: String -> Bool
+    running s = "[running]" `isSuffixOf` (head $ lines s)
 
 -- | Back up a running instance.
 backupInstance :: String -> IO ()
