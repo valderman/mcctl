@@ -2,7 +2,6 @@
 module MCCtl.Frontend where
 import Data.Int (Int32)
 import Data.Char (isSpace)
-import Control.Applicative
 import Control.Monad
 import System.Process
 import System.Environment

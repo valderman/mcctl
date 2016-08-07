@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Parse instances from a YAML file.
 module MCCtl.Config.Parser (readInstanceFile, checkInstanceFile) where
-import Control.Applicative
 import System.Directory
 import qualified Data.ByteString as BS
 import Data.Yaml

@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Configuration types and data.
 module MCCtl.Config where
-import Data.Default
 import Data.Time.Clock (NominalDiffTime)
 import DBus (InterfaceName, ObjectPath, BusName)
 
@@ -18,75 +17,76 @@ dbusBus :: BusName
 dbusBus = "cc.ekblad.mcctl"
 
 -- | Per instance settings.
-data Instance = Instance {
-    -- | The working directory for this instance of the server.
-    serverDirectory  :: !FilePath,
+data Instance = Instance
+  { -- | The working directory for this instance of the server.
+    serverDirectory :: !FilePath
 
     -- | The path, absolute or relative to 'serverDirectory', of the JAR file
     --   for this server instance.
-    serverJAR        :: !FilePath,
+  , serverJAR :: !FilePath
 
     -- | Start this instance automatically when mcctl starts?
-    autostart        :: !Bool,
+  , autostart :: !Bool
 
     -- | Restart the instance if it crashes?
-    restartOnFailure :: !RestartInfo,
+  , restartOnFailure :: !RestartInfo
 
     -- | Initial heap size for Java process, in megabytes.
-    initialHeapSize  :: !Int,
+  , initialHeapSize :: !Int
 
     -- | Maximum heap size for Java process, in megabytes.
-    maxHeapSize      :: !Int,
+  , maxHeapSize :: !Int
 
     -- | Directory in which to put backups.
-    backupDirectory  :: !(Maybe String),
+  , backupDirectory :: !(Maybe String)
 
     -- | Instance server.properties file.
-    serverProperties :: !(Maybe String)
+  , serverProperties :: !(Maybe String)
   } deriving Show
 
 -- | Command-line settable configuration.
-data GlobalConfig = GlobalConfig {
-    -- | File or directory containing instance configurations.
-    cfgConfigPath      :: !ConfigPath,
+data GlobalConfig = GlobalConfig
+  { -- | File or directory containing instance configurations.
+    cfgConfigPath :: !ConfigPath
 
     -- | Given commands affect this server.
     --   Does not affect init or shutdown.
-    cfgTargetServer    :: !(Maybe String),
+  , cfgTargetServer :: !(Maybe String)
 
     -- | Print a help message instead of doing anything else?
-    cfgPrintHelp       :: !Bool,
+  , cfgPrintHelp :: !Bool
 
     -- | Resume editing a broken config when editing.
-    cfgResumeEdit      :: !Bool,
+  , cfgResumeEdit :: !Bool
 
-    -- | Delete data directory as well when removing an instance?
-    cfgDeleteDataDir   :: !Bool,
+   -- | Delete data directory as well when removing an instance?
+  , cfgDeleteDataDir :: !Bool
 
-    -- | Perform the requested action, even if it is potentially dangerous?
-    cfgForce           :: !Bool,
+   -- | Perform the requested action, even if it is potentially dangerous?
+  , cfgForce :: !Bool
 
-    -- | Server directory for newly created instances.
-    cfgServerDirectory :: !(Maybe FilePath)
+   -- | Server directory for newly created instances.
+  , cfgServerDirectory :: !(Maybe FilePath)
   } deriving Show
 
 -- | A complete instance configuration.
-data Config = Config {
-    instanceName   :: !String,
-    globalConfig   :: !GlobalConfig,
-    instanceConfig :: !Instance
+data Config = Config
+  { instanceName   :: !String
+  , globalConfig   :: !GlobalConfig
+  , instanceConfig :: !Instance
   } deriving Show
 
-instance Default GlobalConfig where
-  def = GlobalConfig {
-      cfgConfigPath      = File "/etc/mcctl.yaml",
-      cfgTargetServer    = Nothing,
-      cfgPrintHelp       = False,
-      cfgResumeEdit      = False,
-      cfgDeleteDataDir   = False,
-      cfgForce           = False,
-      cfgServerDirectory = Nothing
-    }
+
+defaultConfig :: GlobalConfig
+defaultConfig = GlobalConfig
+  { cfgConfigPath      = File "/etc/mcctl.yaml"
+  , cfgTargetServer    = Nothing
+  , cfgPrintHelp       = False
+  , cfgResumeEdit      = False
+  , cfgDeleteDataDir   = False
+  , cfgForce           = False
+  , cfgServerDirectory = Nothing
+  }
 
 -- | Instance configuration path.
 data ConfigPath
@@ -103,49 +103,50 @@ data RestartInfo
     deriving Show
 
 -- | Default contents of newly created instances.
-defaultConfig :: FilePath -> String
-defaultConfig srvdir = unlines [
-  "server-directory:  worlddata/" ++ srvdir,
-  "backup-directory:  backups/" ++ srvdir,
-  "server-jar:        ../minecraft_server.1.8.jar",
-  "autostart:         false",
-  "restart:           true",
-  "restart-cooldown:  3",
-  "heap-size:         1024",
-  "max-heap-size:     1024",
-  "server-properties: |",
-  "  generator-settings=",
-  "  op-permission-level=4",
-  "  resource-pack-hash=",
-  "  allow-nether=true",
-  "  level-name=world",
-  "  enable-query=false",
-  "  allow-flight=false",
-  "  announce-player-achievements=true",
-  "  server-port=25565",
-  "  max-world-size=29999984",
-  "  level-type=DEFAULT",
-  "  enable-rcon=false",
-  "  force-gamemode=false",
-  "  level-seed=",
-  "  server-ip=",
-  "  network-compression-threshold=256",
-  "  max-build-height=256",
-  "  spawn-npcs=true",
-  "  white-list=false",
-  "  spawn-animals=true",
-  "  snooper-enabled=false",
-  "  hardcore=false",
-  "  online-mode=true",
-  "  resource-pack=",
-  "  pvp=true",
-  "  difficulty=2",
-  "  enable-command-block=false",
-  "  player-idle-timeout=0",
-  "  gamemode=0",
-  "  max-players=20",
-  "  max-tick-time=60000",
-  "  spawn-monsters=true",
-  "  view-distance=10",
-  "  generate-structures=true",
-  "  motd=Powered by mcctl!"]
+defaultServerConfig :: FilePath -> String
+defaultServerConfig srvdir = unlines
+  [ "server-directory:  worlddata/" ++ srvdir
+  , "backup-directory:  backups/" ++ srvdir
+  , "server-jar:        ../minecraft_server.1.8.jar"
+  , "autostart:         false"
+  , "restart:           true"
+  , "restart-cooldown:  3"
+  , "heap-size:         1024"
+  , "max-heap-size:     1024"
+  , "server-properties: |"
+  , "  generator-settings="
+  , "  op-permission-level=4"
+  , "  resource-pack-hash="
+  , "  allow-nether=true"
+  , "  level-name=world"
+  , "  enable-query=false"
+  , "  allow-flight=false"
+  , "  announce-player-achievements=true"
+  , "  server-port=25565"
+  , "  max-world-size=29999984"
+  , "  level-type=DEFAULT"
+  , "  enable-rcon=false"
+  , "  force-gamemode=false"
+  , "  level-seed="
+  , "  server-ip="
+  , "  network-compression-threshold=256"
+  , "  max-build-height=256"
+  , "  spawn-npcs=true"
+  , "  white-list=false"
+  , "  spawn-animals=true"
+  , "  snooper-enabled=false"
+  , "  hardcore=false"
+  , "  online-mode=true"
+  , "  resource-pack="
+  , "  pvp=true"
+  , "  difficulty=2"
+  , "  enable-command-block=false"
+  , "  player-idle-timeout=0"
+  , "  gamemode=0"
+  , "  max-players=20"
+  , "  max-tick-time=60000"
+  , "  spawn-monsters=true"
+  , "  view-distance=10"
+  , "  generate-structures=true"
+  , "  motd=Powered by mcctl!"
+  ]

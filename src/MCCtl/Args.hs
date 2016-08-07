@@ -1,6 +1,5 @@
 module MCCtl.Args (parseOpts) where
 import Data.List
-import Data.Default
 import System.Directory
 import System.IO.Unsafe
 import System.Console.GetOpt
@@ -10,7 +9,7 @@ import MCCtl.Config
 --   non-option arguments.
 parseOpts :: [String] -> Either String (GlobalConfig, [String])
 parseOpts args =
-    case foldr (.) id opts def of
+    case foldr (.) id opts defaultConfig of
       cfg | cfgPrintHelp cfg -> Left $ printHelp helpHeader options
           | null cmds        -> Left $ shortHelpMessage
           | otherwise        -> Right (cfg, cmds)

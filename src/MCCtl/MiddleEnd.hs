@@ -8,7 +8,6 @@ import Data.Int (Int32)
 import Data.Maybe (isJust)
 import System.Posix.Process
 import System.Directory
-import Control.Applicative
 import Control.Monad
 import Control.Concurrent
 import DBus.Client
@@ -70,7 +69,7 @@ listInstances insts cfg = withMVar insts $ \m -> do
     is <- getAllInstances cfg
     return . unlines $ map (\n -> running n $ isJust (M.lookup n m)) is
   where
-    running n True  = n ++ " [running]"
+    running n True  = n ++ " [running]" :: String
     running n False = n
 
 -- | Create a new instance by the given name, unless we're in single instance
@@ -82,7 +81,7 @@ create cfg@(GlobalConfig {cfgConfigPath = Directory _}) name srvdir = do
   case (fileexists, direxists) of
     (True, _)      -> return "instance already exists"
     (_, True)      -> return "server directory already exists"
-    (False, False) -> writeFile file (defaultConfig srvdir) >> return ""
+    (False, False) -> writeFile file (defaultServerConfig srvdir) >> return ""
   where
     file = instanceFilePath cfg name
 create _ _ _ = do

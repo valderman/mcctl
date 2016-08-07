@@ -12,9 +12,7 @@ import System.IO
 import System.Process
 import System.FilePath
 import System.Directory
-import System.Locale (defaultTimeLocale)
 import System.Exit
-import Control.Applicative
 import Control.Monad
 import Control.Concurrent
 import MCCtl.Config
