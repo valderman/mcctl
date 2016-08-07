@@ -139,7 +139,7 @@ backup st = do
         return $ "no backup directory configured for instance '"++name++"'"
   where
     showTime = formatTime defaultTimeLocale timespec
-    timespec = concat [name, "_%Y-%m-%d_%H%M%S"]
+    timespec = concat [name, "_%Y-%m-%d_%H:%M:%S"]
     datadir = serverDirectory $ instanceConfig $ stConfig st
     name = instanceName $ stConfig st
 
