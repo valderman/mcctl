@@ -8,6 +8,7 @@ import System.Process
 import System.Environment
 import System.FilePath
 import System.Directory
+import System.Posix.Files
 import DBus
 import MCCtl.DBus
 import MCCtl.Config
@@ -96,6 +97,8 @@ editConfig cfg name = do
           when (not exists || not (cfgResumeEdit cfg)) $ do
             copyFile file (file <.> "edit")
           void $ spawnProcess editor [editfile] >>= waitForProcess
+          st <- getFileStatus file
+          setOwnerAndGroup editfile (fileOwner st) (fileGroup st)
           isok <- checkInstanceFile editfile
           if isok
             then renameFile editfile file
