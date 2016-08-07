@@ -27,17 +27,13 @@ runCmd cfg args = do
       ["stop", s]    -> stopServer s
       ["restart"]    -> restartServer server
       ["restart", s] -> restartServer s
-      ["edit"]       -> editConfig cfg server
       ["edit", s]    -> editConfig cfg s
-      ["create"]     -> createInstance server srvdir
       ["create", s]  -> createInstance s srvdir
-      ["delete"]     -> deleteInstance cfg server
       ["delete", s]  -> deleteInstance cfg s
       ["backup"]     -> backupInstance server
       ["backup", s]  -> backupInstance s
       ["list"]       -> listInstances
       ["status", s]  -> instanceStatus s
-      ["log", n]     -> getServerBacklog server $ read n
       ["log", n, s]  -> getServerBacklog s $ read n
       cmd            -> serverCommand server $ unwords cmd
     case res of
