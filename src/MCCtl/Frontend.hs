@@ -26,6 +26,15 @@ runAndPrint cmd args = do
 listInstances :: IO ()
 listInstances = runAndPrint "list" []
 
+-- | Get the identifiers of all running instances.
+getRunningInstances :: IO [String]
+getRunningInstances = do
+  ret <- dbusCall "list" []
+  case fromVariant <$> methodReturnBody ret of
+    [Just s] -> return [ reverse $ drop 10 $ reverse ln
+                       | ln <- lines s, "[running]" `isSuffixOf` ln]
+    _        -> error "Impossibru!"
+
 -- | Print the running/not running status of the given instance.
 instanceStatus :: String -> IO ()
 instanceStatus inst = do

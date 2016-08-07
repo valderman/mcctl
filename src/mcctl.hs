@@ -42,11 +42,21 @@ runCmd cfg args = do
   where
     server = maybe "" id $ cfgTargetServer cfg
     srvdir = maybe "" id $ cfgServerDirectory cfg
-    restartServer name = stopServer name >> startServer name
+
+    restartServer ""   = do
+      getRunningInstances >>= mapM_ restartServer
+    restartServer name = do
+      mst <- getInstanceStatus name
+      case mst of
+        Just True  -> stopServer name >> startServer name
+        Just False -> putStrLn $ "instance not running, so will not restart"
+        _          -> putStrLn "no such instance"
+
     failed = unlines
       [ "Unable to contact the mcctl server. Make sure that it is up and"
       , "running, and that you have permissions to make calls to it."
       ]
+
     printDBusError e
       | cfgPrintDBusErrors cfg = putStr $ unlines
          [ ""
