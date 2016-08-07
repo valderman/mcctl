@@ -36,6 +36,7 @@ runCmd cfg args = do
       ["backup"]     -> backupInstance server
       ["backup", s]  -> backupInstance s
       ["list"]       -> listInstances
+      ["status", s]  -> instanceStatus s
       ["log", n]     -> getServerBacklog server $ read n
       ["log", n, s]  -> getServerBacklog s $ read n
       cmd            -> serverCommand server $ unwords cmd

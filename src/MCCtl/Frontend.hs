@@ -2,6 +2,7 @@
 module MCCtl.Frontend where
 import Data.Int (Int32)
 import Data.Char (isSpace)
+import Data.List (isPrefixOf, isSuffixOf)
 import Control.Monad
 import System.Process
 import System.Environment
@@ -23,6 +24,21 @@ runAndPrint cmd args = do
 -- | List all available instances.
 listInstances :: IO ()
 listInstances = runAndPrint "list" []
+
+-- | Print the running/not running status of the given instance.
+instanceStatus :: String -> IO ()
+instanceStatus inst = do
+  ret <- dbusCall "list" []
+  case fromVariant <$> methodReturnBody ret of
+    [Just s]
+      | inst `isPrefixOf` s -> putStrLn (running s)
+      | otherwise           -> putStrLn "no such instance"
+    _        -> error "Impossibru!"
+  where
+    running :: String -> String
+    running s
+      | "[running]" `isSuffixOf` (head $ lines s) = "running"
+      | otherwise                                 = "not running"
 
 -- | Back up a running instance.
 backupInstance :: String -> IO ()
