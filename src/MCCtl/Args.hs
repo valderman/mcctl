@@ -59,7 +59,7 @@ options = [
       return $ cfg {cfgConfigPath = p}
 
 usageLine :: String
-usageLine = "Usage: mcctl [OPTIONS] init|shutdown|start|stop|log N|COMMAND"
+usageLine = "Usage: mcctl [OPTIONS] COMMAND"
 
 shortHelpMessage :: String
 shortHelpMessage =
@@ -84,8 +84,14 @@ helpHeader = init $ unlines [
   "stop [INSTANCE]",
   "  Stop INSTANCE, or all running instances if none is given.",
   "",
+  "restart [INSTANCE]",
+  "  Restart INSTANCE, or all running instances if none is given.",
+  "",
   "log N [INSTANCE]",
   "  Print the last N lines from INSTANCE's log file.",
+  "",
+  "status INSTANCE",
+  "  Check whether INSTANCE is running.",
   "",
   "edit [INSTANCE]",
   "  Edit the given instance's configuration file using the editor found in",
