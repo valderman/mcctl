@@ -59,14 +59,17 @@ data GlobalConfig = GlobalConfig
     -- | Resume editing a broken config when editing.
   , cfgResumeEdit :: !Bool
 
-   -- | Delete data directory as well when removing an instance?
+    -- | Delete data directory as well when removing an instance?
   , cfgDeleteDataDir :: !Bool
 
-   -- | Perform the requested action, even if it is potentially dangerous?
+    -- | Perform the requested action, even if it is potentially dangerous?
   , cfgForce :: !Bool
 
-   -- | Server directory for newly created instances.
+    -- | Server directory for newly created instances.
   , cfgServerDirectory :: !(Maybe FilePath)
+
+    -- | Print DBus error messages?
+  , cfgPrintDBusErrors :: !Bool
   } deriving Show
 
 -- | A complete instance configuration.
@@ -86,6 +89,7 @@ defaultConfig = GlobalConfig
   , cfgDeleteDataDir   = False
   , cfgForce           = False
   , cfgServerDirectory = Nothing
+  , cfgPrintDBusErrors = False
   }
 
 -- | Instance configuration path.

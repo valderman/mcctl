@@ -4,6 +4,9 @@ import MCCtl.Frontend
 import MCCtl.MiddleEnd
 import MCCtl.Config
 import MCCtl.Args
+import Control.Exception
+import System.Exit
+import DBus.Client
 
 main :: IO ()
 main = do
@@ -15,7 +18,7 @@ main = do
 -- | Parse non-option command lines and execute any commands.
 runCmd :: GlobalConfig -> [String] -> IO ()
 runCmd cfg args = do
-    case args of
+    res <- try $ case args of
       ["init"]       -> startMCCtlServer cfg
       ["shutdown"]   -> shutdownServer
       ["start"]      -> startServer server
@@ -36,7 +39,22 @@ runCmd cfg args = do
       ["log", n]     -> getServerBacklog server $ read n
       ["log", n, s]  -> getServerBacklog s $ read n
       cmd            -> serverCommand server $ unwords cmd
+    case res of
+      Left e -> putStr failed >> printDBusError e >> exitFailure
+      _      -> return ()
   where
     server = maybe "" id $ cfgTargetServer cfg
     srvdir = maybe "" id $ cfgServerDirectory cfg
     restartServer name = stopServer name >> startServer name
+    failed = unlines
+      [ "Unable to contact the mcctl server. Make sure that it is up and"
+      , "running, and that you have permissions to make calls to it."
+      ]
+    printDBusError e
+      | cfgPrintDBusErrors cfg = putStr $ unlines
+         [ ""
+         , "The DBus error was:"
+         , clientErrorMessage e
+         ]
+      | otherwise = return ()
+

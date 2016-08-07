@@ -45,6 +45,9 @@ options = [
                (ReqArg (\s c -> c {cfgServerDirectory = Just s}) "DIR")
                ("Use this server-directory when creating a new instance. " ++
                 "Defaults to SERVER_WORKING_DIRECTORY/INSTANCE_NAME."),
+    Option ""  ["print-dbus-errors"]
+               (NoArg $ \c -> c {cfgPrintDBusErrors = True})
+               ("Print full DBus error when something goes wrong."),
     Option "h?" ["help"]
                 (NoArg $ \c -> c {cfgPrintHelp = True})
                 "Print this help message."
