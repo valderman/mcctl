@@ -1,4 +1,4 @@
-.TH MCCtl 1
+.TH mcctl 1
 
 .SH NAME
 mcctl \- control and configure mcctl wrapped Minecraft servers
@@ -22,20 +22,20 @@ or
 .SH BUILT-IN COMMANDS
 .TP
 .BR init
-Starts MCCtl.
+Starts mcctl as well as all autostarting instances.
 
 .TP
 .BR shutdown
-Stops MCCtl.
+Stops mcctl.
 
 .TP
 .BR list
-Lists started Minecraft instances.
+Lists all available Minecraft instances.
 
 .TP
 .BR start
-Starts a server, either the default Minecraft server or
-a given server instance.
+Starts a server instance. If no instance is specified, all available instances
+are started.
 .IP
 .R usage:
 mcctl
@@ -43,8 +43,9 @@ mcctl
 [server instance identifier]
 
 .TP
-.BR stop  [s]
-Stops a server, either the default Minecraft server or a given server instance. 
+.BR stop
+Stops a server instance. If no instance is specified, all running instances
+are stopped.
 .IP
 .R usage:
 mcctl
@@ -53,8 +54,8 @@ mcctl
 
 .TP
 .BR restart
-Restarts a server, either the default Minecraft server or
-a given server instance.
+Restarts a server instance. If no instance is specified, all running instances
+are restarted.
 .IP
 .R usage:
 mcctl
@@ -63,38 +64,36 @@ mcctl
 
 .TP
 .BR edit
-Edits the config for the either default Minecraft server or a given
-server instance.
+Use the editor specified by $EDITOR to modify the configuration for the given
+instance. Falls back to the nano editor if $EDITOR is empty.
 .IP
 .R usage:
 mcctl
 .B edit
-[server instance identifier]
+<instance>
 
 .TP
 .BR create
-Creates a new server instance, either as the default instance or an instance
-bound to a given identifier.
+Creates a new server instance with the given name.
 .IP
 .R usage:
 mcctl
 .B create
-[server instance identifier]
+<instance>
 
 .TP
 .BR delete
-Deletes the default Minecraft server or a server instance identified by \fBs\fR.
+Delete a server instance.
 .IP
 .R usage:
 mcctl
 .B delete
-[server instance identifier]
-[s]
+<instance>
 
 .TP
 .BR backup
-Backups the world for either the default Minecraft server instance
-or a given server instance.
+Create a world backup for the given instance. If no instance is given, all
+instances are backed up.
 .IP
 .R usage:
 mcctl
@@ -103,14 +102,18 @@ mcctl
 
 .TP
 .BR log
-Gets the last n log messages for either the default Minecraft server instance
-or a given server instance.
+Gets the last n log messages the given instance.
 .IP
 .R usage:
 mcctl
 .B log
-lines [server instance identifier]
+<lines to print> <instance>
+
+.TP
+.BR status
+Show whether a particular instance is running.
 .IP
-\fBlines\fR - number of lines to print
-
-
+.R usage:
+mcctl
+.B status
+[server instance identifier]
