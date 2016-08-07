@@ -107,7 +107,7 @@ defaultServerConfig :: FilePath -> String
 defaultServerConfig srvdir = unlines
   [ "server-directory:  worlddata/" ++ srvdir
   , "backup-directory:  backups/" ++ srvdir
-  , "server-jar:        ../minecraft_server.1.8.jar"
+  , "server-jar:        ../minecraft_server.1.10.2.jar"
   , "autostart:         false"
   , "restart:           true"
   , "restart-cooldown:  3"

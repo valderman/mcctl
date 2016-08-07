@@ -2,5 +2,5 @@
 addgroup --system mcctl
 adduser --system mcctl --home /usr/lib/mcctl --ingroup mcctl
 deb-systemd-helper enable mcctl.service
-wget -nc -O /usr/lib/mcctl/minecraft_server.1.8.jar https://s3.amazonaws.com/Minecraft.Download/versions/1.8/minecraft_server.1.8.jar
+wget -nc -O /usr/lib/mcctl/minecraft_server.1.10.2.jar https://s3.amazonaws.com/Minecraft.Download/versions/1.10.2/minecraft_server.1.10.2.jar
 exit 0

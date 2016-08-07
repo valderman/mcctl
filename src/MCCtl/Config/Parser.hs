@@ -28,7 +28,7 @@ parseInstance bs = do
         cooldown <- o .:? "restart-cooldown" .!= 3
         initheap <- o .:? "heap-size" .!= 1024
         Instance <$> o .:  "server-directory"
-                 <*> o .:? "server-jar" .!= "minecraft_server.1.8.jar"
+                 <*> o .:? "server-jar" .!= "minecraft_server.1.10.2.jar"
                  <*> o .:? "autostart" .!= True
                  <*> pure (restartInfo restart cooldown)
                  <*> pure initheap
