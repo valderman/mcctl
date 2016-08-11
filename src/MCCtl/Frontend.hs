@@ -8,11 +8,15 @@ import System.Process
 import System.Environment
 import System.FilePath
 import System.Directory
-import System.Posix.Files
 import DBus
 import MCCtl.DBus
 import MCCtl.Config
 import MCCtl.Config.Parser
+
+-- | Current status of an instance. It may either be running, exist but not
+--   run, or just not exist.
+data InstanceStatus = Running | NotRunning | NotFound
+  deriving (Read, Show, Eq, Ord)
 
 -- | Run a command on the mcctl server, then print the results.
 runAndPrint :: MemberName -> [Variant] -> IO ()
@@ -38,25 +42,26 @@ getRunningInstances = do
 -- | Print the running/not running status of the given instance.
 instanceStatus :: String -> IO ()
 instanceStatus inst = do
-  mrunning <- getInstanceStatus inst
-  case mrunning of
-    Just running -> do
-      when (not running) $ putStr "not "
-      putStrLn "running"
-    _ -> do
-      putStrLn "no such instance"
+  st <- getInstanceStatus inst
+  case st of
+    Running    -> putStrLn "running"
+    NotRunning -> putStrLn "not running"
+    NotFound   -> putStrLn "no such instance"
 
-getInstanceStatus :: String -> IO (Maybe Bool)
+-- | Get the status of the given instance.
+getInstanceStatus :: String -> IO InstanceStatus
 getInstanceStatus inst = do
   ret <- dbusCall "list" []
   case fromVariant <$> methodReturnBody ret of
     [Just s]
-      | inst `isPrefixOf` s -> return $ Just (running s)
-      | otherwise           -> return Nothing
-    _        -> error "Impossibru!"
+      | inst `isPrefixOf` s -> return $ running s
+      | otherwise           -> return NotFound
+    _                       -> error "Impossibru!"
   where
-    running :: String -> Bool
-    running s = "[running]" `isSuffixOf` (head $ lines s)
+    running :: String -> InstanceStatus
+    running s
+      | "[running]" `isSuffixOf` (head $ lines s) = Running
+      | otherwise                                 = NotRunning
 
 -- | Back up a running instance.
 backupInstance :: String -> IO ()
@@ -88,9 +93,9 @@ createInstance name srvdir = runAndPrint "create" $ map toVariant [name, dir]
 --   then let the user modified it with their chosen $EDITOR. Check that the
 --   config is actually a valid config before atomically overwriting the old
 --   one.
-editConfig :: GlobalConfig -> String -> IO ()
-editConfig cfg name = do
-    ret <- dbusCall "configpath" [toVariant name]
+editConfigWith :: Client -> GlobalConfig -> String -> IO ()
+editConfigWith client cfg name = do
+    ret <- dbusCallWith client "configpath" [toVariant name]
     case fromVariant <$> methodReturnBody ret of
       [Just ["ok", file]] -> edit file
       [Just [err]]        -> putStrLn err
@@ -101,17 +106,18 @@ editConfig cfg name = do
       meditor <- findExecutable bin
       case meditor of
         Just editor -> do
-          let editfile = file <.> "edit"
+          let editfile = "/tmp" </> takeFileName file <.> "edit"
           exists <- doesFileExist editfile
           when (not exists || not (cfgResumeEdit cfg)) $ do
-            copyFile file (file <.> "edit")
+            copyFile file editfile
           void $ spawnProcess editor [editfile] >>= waitForProcess
-          st <- getFileStatus file
-          setOwnerAndGroup editfile (fileOwner st) (fileGroup st)
           isok <- checkInstanceFile editfile
           if isok
-            then renameFile editfile file
-            else putStrLn badconfig
+            then do
+              void $ dbusCallWith client "commitcfg" [toVariant name]
+              removeFile editfile
+            else do
+              putStrLn badconfig
         _ -> do
           putStrLn noeditor
     noeditor = "Unable to find a suitable editor.\n" ++
@@ -122,6 +128,13 @@ editConfig cfg name = do
                 "'mcctl edit --resume',\n" ++
                 "or start over with your known good config by running " ++
                 "'mcctl edit'."
+
+-- | Like 'editConfigWith', but opens a new DBus session.
+editConfig :: GlobalConfig -> String -> IO ()
+editConfig cfg name = do
+  client <- connectSystem
+  editConfigWith client cfg name
+  disconnect client
 
 -- | Perform a gracious shutdown of all instances, then kill the MCCtl server.
 shutdownServer :: IO ()
@@ -139,10 +152,30 @@ startServer name = runAndPrint "start" [toVariant name]
 serverCommand :: String -> String -> IO ()
 serverCommand name cmd = runAndPrint "command" [toVariant name, toVariant cmd]
 
+-- | Import a world directory as an MCCtl instance.
+importWorld :: GlobalConfig -> String -> FilePath -> IO ()
+importWorld cfg name dir = do
+  isdir <- doesDirectoryExist dir
+  st <- getInstanceStatus name
+  case (isdir, st) of
+    (True, NotFound) -> do
+      dir' <- makeAbsolute dir
+      client <- connectSystem
+      res <- dbusCallWith client "import" [toVariant name, toVariant dir']
+      let [Just res'] = fromVariant <$> methodReturnBody res
+      when (null res') $ editConfigWith client cfg name
+      printMessage res'
+    (False, _) -> do
+      putStrLn $ "directory `" ++ dir ++ "' does not exist"
+    _ -> do
+      putStrLn "instance already exists"
+
 -- | Print the last n lines from the server log.
 getServerBacklog :: String -> Int32 -> IO ()
 getServerBacklog name n = runAndPrint "backlog" [toVariant name, toVariant n]
 
+-- | Print a message followed by a newline. If the message is empty, print
+--   nothing.
 printMessage :: String -> IO ()
 printMessage s =
   case strip s of

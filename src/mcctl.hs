@@ -19,23 +19,24 @@ main = do
 runCmd :: GlobalConfig -> [String] -> IO ()
 runCmd cfg args = do
     res <- try $ case args of
-      ["init"]       -> startMCCtlServer cfg
-      ["shutdown"]   -> shutdownServer
-      ["start"]      -> startServer server
-      ["start", s]   -> startServer s
-      ["stop"]       -> stopServer server
-      ["stop", s]    -> stopServer s
-      ["restart"]    -> restartServer server
-      ["restart", s] -> restartServer s
-      ["edit", s]    -> editConfig cfg s
-      ["create", s]  -> createInstance s srvdir
-      ["delete", s]  -> deleteInstance cfg s
-      ["backup"]     -> backupInstance server
-      ["backup", s]  -> backupInstance s
-      ["list"]       -> listInstances
-      ["status", s]  -> instanceStatus s
-      ["log", n, s]  -> getServerBacklog s $ read n
-      cmd            -> serverCommand server $ unwords cmd
+      ["init"]         -> startMCCtlServer cfg
+      ["shutdown"]     -> shutdownServer
+      ["start"]        -> startServer server
+      ["start", s]     -> startServer s
+      ["stop"]         -> stopServer server
+      ["stop", s]      -> stopServer s
+      ["restart"]      -> restartServer server
+      ["restart", s]   -> restartServer s
+      ["edit", s]      -> editConfig cfg s
+      ["create", s]    -> createInstance s srvdir
+      ["delete", s]    -> deleteInstance cfg s
+      ["backup"]       -> backupInstance server
+      ["backup", s]    -> backupInstance s
+      ["list"]         -> listInstances
+      ["status", s]    -> instanceStatus s
+      ["log", n, s]    -> getServerBacklog s $ read n
+      ["import", n, d] -> importWorld cfg n d
+      cmd              -> serverCommand server $ unwords cmd
     case res of
       Left e -> putStr failed >> printDBusError e >> exitFailure
       _      -> return ()
@@ -46,11 +47,11 @@ runCmd cfg args = do
     restartServer ""   = do
       getRunningInstances >>= mapM_ restartServer
     restartServer name = do
-      mst <- getInstanceStatus name
-      case mst of
-        Just True  -> stopServer name >> startServer name
-        Just False -> putStrLn $ "instance not running, so will not restart"
-        _          -> putStrLn "no such instance"
+      st <- getInstanceStatus name
+      case st of
+        Running    -> stopServer name >> startServer name
+        NotRunning -> putStrLn $ "instance not running, so will not restart"
+        NotFound   -> putStrLn "no such instance"
 
     failed = unlines
       [ "Unable to contact the mcctl server. Make sure that it is up and"

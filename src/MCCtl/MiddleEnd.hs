@@ -8,6 +8,7 @@ import Data.Int (Int32)
 import Data.Maybe (isJust)
 import System.Posix.Process
 import System.Directory
+import System.FilePath (takeFileName, (</>), (<.>))
 import Control.Monad
 import Control.Concurrent
 import DBus.Client
@@ -52,10 +53,12 @@ startMCCtlServer cfg = do
               autoMethod dbusIface "command"    $ command insts,
               autoMethod dbusIface "backlog"    $ backlog insts,
               autoMethod dbusIface "configpath" $ getConfigPath cfg,
+              autoMethod dbusIface "commitcfg"  $ commit cfg,
               autoMethod dbusIface "create"     $ create cfg,
               autoMethod dbusIface "delete"     $ delete cfg insts,
               autoMethod dbusIface "list"       $ listInstances insts cfg,
-              autoMethod dbusIface "backup"     $ backup insts
+              autoMethod dbusIface "backup"     $ backup insts,
+              autoMethod dbusIface "import"     $ importWorld cfg
             ]
           void $ start True cfg insts ""
           takeMVar $ closeLock
@@ -81,7 +84,7 @@ create cfg@(GlobalConfig {cfgConfigPath = Directory _}) name srvdir = do
   case (fileexists, direxists) of
     (True, _)      -> return "instance already exists"
     (_, True)      -> return "server directory already exists"
-    (False, False) -> writeFile file (defaultServerConfig srvdir) >> return ""
+    (False, False) -> writeFile file (defaultServerConfig Nothing srvdir) >> return ""
   where
     file = instanceFilePath cfg name
 create _ _ _ = do
@@ -203,3 +206,49 @@ backlog insts name n = withMVar insts $ \m -> do
   case M.lookup name m of
     Just st -> Backend.backlog n st
     _       -> return "no such instance running"
+
+-- | Import a world directory as an instance.
+importWorld :: GlobalConfig -> String -> FilePath -> IO String
+importWorld cfg name dir = do
+  res <- create cfg name name
+  if null res
+    then do
+      Just inst <- readInstanceFile file
+      let instdir = serverDirectory inst
+      createDirectoryIfMissing True instdir
+      copyContents dir instdir
+      haspropfile <- doesFileExist propfile
+      when haspropfile $ do
+        props <- readFile propfile
+        writeFile file $ defaultServerConfig (Just props) name
+      return ""
+    else do
+      return res
+  where
+    file = instanceFilePath cfg name
+    propfile = dir </> "server.properties"
+
+-- | Copy the contents of directory A into directory B, recursively.
+copyContents :: FilePath -> FilePath -> IO ()
+copyContents a b = do
+  files <- getDirectoryContents a
+  let files' = [(a </> f, b </> f) | f <- files, f /= ".", f /= ".."]
+  forM_ files' $ \(from, to) -> do
+    isdir <- doesDirectoryExist from
+    if isdir
+      then createDirectoryIfMissing True to >> copyContents from to
+      else copyFile from to
+
+-- | Commit an edited config for the given instance. Does nothing if there
+--   is no edited config.
+commit :: GlobalConfig -> String -> IO String
+commit cfg name = do
+  exists <- doesFileExist editfile
+  when exists $ do
+    copyFile editfile commitfile
+    renameFile commitfile file
+  return ""
+  where
+    file = instanceFilePath cfg name
+    editfile = "/tmp" </> takeFileName file <.> "edit"
+    commitfile = file <.> "commit"

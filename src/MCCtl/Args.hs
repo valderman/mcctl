@@ -114,6 +114,10 @@ helpHeader = init $ unlines [
   "  Back up the specified instance to its configured backup directory, or ",
   "  all running instances if none is given.",
   "",
+  "import INSTANCE DIR",
+  "  Create a new instance with the name INSTANCE, using the world data from ",
+  "  directory DIR."
+  "",
   "COMMAND [-i INSTANCE]",
   "  Pass COMMAND to the specified instance's Minecraft server process,",
   "  or to all running servers if no instance is given.",
