@@ -170,6 +170,18 @@ importWorld cfg name dir = do
     _ -> do
       putStrLn "instance already exists"
 
+-- | Install a server JAR file into mcctl's @jars@ subdirectory.
+installJAR :: FilePath -> IO ()
+installJAR jar = do
+  jar' <- makeAbsolute jar
+  runAndPrint "installJAR" [toVariant jar']
+
+-- | List all available server JARs.
+listJARs :: IO ()
+listJARs = do
+  jars <- getDirectoryContents "/usr/lib/mcctl/jars"
+  mapM_ putStrLn [j | j <- jars, head j /= '.']
+
 -- | Print the last n lines from the server log.
 getServerBacklog :: String -> Int32 -> IO ()
 getServerBacklog name n = runAndPrint "backlog" [toVariant name, toVariant n]

@@ -19,24 +19,26 @@ main = do
 runCmd :: GlobalConfig -> [String] -> IO ()
 runCmd cfg args = do
     res <- try $ case args of
-      ["init"]         -> startMCCtlServer cfg
-      ["shutdown"]     -> shutdownServer
-      ["start"]        -> startServer server
-      ["start", s]     -> startServer s
-      ["stop"]         -> stopServer server
-      ["stop", s]      -> stopServer s
-      ["restart"]      -> restartServer server
-      ["restart", s]   -> restartServer s
-      ["edit", s]      -> editConfig cfg s
-      ["create", s]    -> createInstance s srvdir
-      ["delete", s]    -> deleteInstance cfg s
-      ["backup"]       -> backupInstance server
-      ["backup", s]    -> backupInstance s
-      ["list"]         -> listInstances
-      ["status", s]    -> instanceStatus s
-      ["log", n, s]    -> getServerBacklog s $ read n
-      ["import", n, d] -> importWorld cfg n d
-      cmd              -> serverCommand server $ unwords cmd
+      ["init"]           -> startMCCtlServer cfg
+      ["shutdown"]       -> shutdownServer
+      ["start"]          -> startServer server
+      ["start", s]       -> startServer s
+      ["stop"]           -> stopServer server
+      ["stop", s]        -> stopServer s
+      ["restart"]        -> restartServer server
+      ["restart", s]     -> restartServer s
+      ["edit", s]        -> editConfig cfg s
+      ["create", s]      -> createInstance s srvdir
+      ["delete", s]      -> deleteInstance cfg s
+      ["backup"]         -> backupInstance server
+      ["backup", s]      -> backupInstance s
+      ["list"]           -> listInstances
+      ["status", s]      -> instanceStatus s
+      ["log", n, s]      -> getServerBacklog s $ read n
+      ["import", n, d]   -> importWorld cfg n d
+      ["install-jar", j] -> installJAR j
+      ["list-jars"]      -> listJARs
+      cmd                -> serverCommand server $ unwords cmd
     case res of
       Left e -> putStr failed >> printDBusError e >> exitFailure
       _      -> return ()

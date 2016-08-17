@@ -58,7 +58,8 @@ startMCCtlServer cfg = do
               autoMethod dbusIface "delete"     $ delete cfg insts,
               autoMethod dbusIface "list"       $ listInstances insts cfg,
               autoMethod dbusIface "backup"     $ backup insts,
-              autoMethod dbusIface "import"     $ importWorld cfg
+              autoMethod dbusIface "import"     $ importWorld cfg,
+              autoMethod dbusIface "installJAR" $ installJAR
             ]
           void $ start True cfg insts ""
           takeMVar $ closeLock
@@ -227,6 +228,13 @@ importWorld cfg name dir = do
   where
     file = instanceFilePath cfg name
     propfile = dir </> "server.properties"
+
+installJAR :: FilePath -> IO String
+installJAR jar = do
+  exists <- doesFileExist jar
+  if exists
+    then copyFile jar ("/usr/lib/mcctl/jars" </> takeFileName jar) >> return ""
+    else return $ "file " ++ jar ++ " does not exist"
 
 -- | Copy the contents of directory A into directory B, recursively.
 copyContents :: FilePath -> FilePath -> IO ()
