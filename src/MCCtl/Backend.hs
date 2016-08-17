@@ -167,12 +167,13 @@ spawnServerProc cfg = do
   mjava <- findExecutable java
   case mjava of
     Just _ -> do
-      createDirectoryIfMissing True dir
+      workdir <- getCurrentDirectory
+      createDirectoryIfMissing True (workdir </> dir)
       writeFile (dir </> "eula.txt") "eula=true"
       case serverProperties $ instanceConfig cfg of
         Just props -> writeFile (dir </> "server.properties") props
         _          -> return ()
-      (Just i, Just o, Nothing, ph) <- createProcess cp
+      (Just i, Just o, Nothing, ph) <- createProcess (cp $ workdir </> "jars")
       Right <$> (State <$> pure ph
                        <*> pure i
                        <*> newMVar o
@@ -183,16 +184,16 @@ spawnServerProc cfg = do
       return $ Left "Java binary not found at /usr/bin/java"
   where
     java = "/usr/bin/java"
-    jar = instanceJAR cfg
+    jar = takeFileName (instanceJAR cfg)
     dir = instanceDirectory cfg
     xms = "-Xms" ++ show (initialHeapSize $ instanceConfig cfg) ++ "M"
     xmx = "-Xmx" ++ show (maxHeapSize $ instanceConfig cfg) ++ "M"
     concgc = "-XX:+UseConcMarkSweepGC"
     inccp = "-XX:+CMSIncrementalPacing"
     aggropts = "-XX:+AggressiveOpts"
-    opts = [concgc, inccp, aggropts, xms, xmx, "-jar", jar, "nogui"]
-    cp = CreateProcess {
-        cmdspec       = RawCommand java opts,
+    opts jardir = [concgc, inccp, aggropts, xms, xmx, "-jar", jardir </> jar, "nogui"]
+    cp jardir = CreateProcess {
+        cmdspec       = RawCommand java (opts jardir),
         cwd           = Just dir,
         env           = Nothing,
         std_in        = CreatePipe,

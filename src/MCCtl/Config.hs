@@ -21,8 +21,7 @@ data Instance = Instance
   { -- | The working directory for this instance of the server.
     serverDirectory :: !FilePath
 
-    -- | The path, absolute or relative to 'serverDirectory', of the JAR file
-    --   for this server instance.
+    -- | The name of the JAR file for this server instance.
   , serverJAR :: !FilePath
 
     -- | Start this instance automatically when mcctl starts?
@@ -111,7 +110,7 @@ defaultServerConfig :: Maybe String -> FilePath -> String
 defaultServerConfig mprops srvdir = unlines
   [ "server-directory:  worlddata/" ++ srvdir
   , "backup-directory:  backups/" ++ srvdir
-  , "server-jar:        ../../minecraft_server.1.10.2.jar"
+  , "server-jar:        minecraft_server.1.10.2.jar"
   , "autostart:         false"
   , "restart:           true"
   , "restart-cooldown:  3"

@@ -4,7 +4,6 @@ module MCCtl.Config.Parser (readInstanceFile, checkInstanceFile) where
 import System.Directory
 import qualified Data.ByteString as BS
 import Data.Yaml
-import Data.Maybe (isJust)
 import MCCtl.Config
 
 -- | Read an instance configuration from disk.
@@ -17,7 +16,14 @@ readInstanceFile file = do
 
 -- | Does the given instance exist and have a valid configuration?
 checkInstanceFile :: FilePath -> IO Bool
-checkInstanceFile = fmap isJust . readInstanceFile
+checkInstanceFile f = do
+  minst <- readInstanceFile f
+  case minst of
+    Just inst -> do
+      jars <- getDirectoryContents ("/usr/lib/mcctl/jars")
+      return $ serverJAR inst `elem` jars
+    _ -> do
+      return False
 
 -- | Parse an instance YAML file.
 parseInstance :: BS.ByteString -> Maybe Instance

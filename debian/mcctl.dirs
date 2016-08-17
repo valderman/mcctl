@@ -3,6 +3,7 @@ lib/systemd/system
 etc/dbus-1/system.d
 usr/share/doc/mcctl
 usr/lib/mcctl
+usr/lib/mcctl/jars
 usr/lib/mcctl/instances
 usr/lib/mcctl/backups
 usr/lib/mcctl/worlddata
